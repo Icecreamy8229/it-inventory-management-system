@@ -204,6 +204,70 @@ def register_routes(app):
         flash(f"No equipment found with asset tag '{asset_tag}'.", "warning")
         return redirect(url_for("equipment_list"))
 
+    @app.route("/equipment/export")
+    @login_required
+    def equipment_export():
+        import io
+        from openpyxl import Workbook
+        from flask import send_file
+
+        search = request.args.get("search", "").strip()
+        sort_by = request.args.get("sort_by", "")
+        sort_order = request.args.get("sort_order", "asc")
+        filter_type = request.args.get("filter", "").strip()
+
+        equipment_service = EquipmentService()
+        items = equipment_service.list_equipment(
+            search=search or None,
+            sort_by=sort_by or None,
+            sort_order=sort_order,
+            filter_type=filter_type or None,
+        )
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Equipment"
+
+        headers = [
+            "Asset Tag", "Name", "Category", "Manufacturer", "Model",
+            "Serial Number", "Status", "Assignee", "Location",
+            "Purchase Date", "Purchase Cost", "Warranty Expiration", "Notes",
+        ]
+        ws.append(headers)
+
+        for item in items:
+            ws.append([
+                item.asset_tag,
+                item.name,
+                item.category,
+                item.manufacturer,
+                item.model,
+                item.serial_number,
+                item.status,
+                item.assignee or "",
+                item.location or "",
+                str(item.purchase_date) if item.purchase_date else "",
+                item.purchase_cost,
+                str(item.warranty_expiration_date) if item.warranty_expiration_date else "",
+                item.notes or "",
+            ])
+
+        # Auto-size columns
+        for col in ws.columns:
+            max_len = max((len(str(cell.value or "")) for cell in col), default=10)
+            ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 40)
+
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        return send_file(
+            output,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            as_attachment=True,
+            download_name="equipment_export.xlsx",
+        )
+
     @app.route("/equipment/new")
     @login_required
     @admin_required
