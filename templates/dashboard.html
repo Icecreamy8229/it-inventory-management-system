@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h1 class="page-title">Dashboard</h1>
+
+<div class="dashboard-grid">
+    <div class="card">
+        <h2 class="card-title">Equipment by Status</h2>
+        {% if summary.by_status %}
+        <div class="summary-grid">
+            {% for status, count in summary.by_status.items() %}
+            <div class="summary-item">
+                <span class="summary-label">{{ status }}</span>
+                <span class="summary-count">{{ count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-message">No equipment registered yet.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">Equipment by Category</h2>
+        {% if summary.by_category %}
+        <div class="summary-grid">
+            {% for category, count in summary.by_category.items() %}
+            <div class="summary-item">
+                <span class="summary-label">{{ category }}</span>
+                <span class="summary-count">{{ count }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-message">No equipment registered yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .page-title { font-size: 1.5rem; margin-bottom: 1.25rem; }
+    .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .card-title { font-size: 1.1rem; margin-bottom: 1rem; color: #1e293b; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .summary-item { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; background: #f8fafc; border-radius: 6px; }
+    .summary-label { font-size: 0.9rem; color: #475569; }
+    .summary-count { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+    .empty-message { color: #94a3b8; font-size: 0.9rem; }
+    @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}

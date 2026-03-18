@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}{{ equipment.name }} — Details{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">{{ equipment.name }}</h1>
+    <div class="page-actions">
+        {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('equipment_edit', equipment_id=equipment.id) }}" class="btn btn-primary">Edit</a>
+        {% endif %}
+        <a href="{{ url_for('equipment_list') }}" class="btn btn-secondary">Back to List</a>
+    </div>
+</div>
+
+<div class="detail-grid">
+    <div class="card">
+        <h2 class="card-title">Equipment Information</h2>
+        <dl class="detail-list">
+            <div class="detail-row">
+                <dt>Asset Tag</dt>
+                <dd>{{ equipment.asset_tag }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Name</dt>
+                <dd>{{ equipment.name }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Category</dt>
+                <dd>{{ equipment.category }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Manufacturer</dt>
+                <dd>{{ equipment.manufacturer }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Model</dt>
+                <dd>{{ equipment.model }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Serial Number</dt>
+                <dd>{{ equipment.serial_number }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Status</dt>
+                <dd><span class="status-badge status-{{ equipment.status|lower|replace(' ', '-') }}">{{ equipment.status }}</span></dd>
+            </div>
+            <div class="detail-row">
+                <dt>Assignee</dt>
+                <dd>{{ equipment.assignee or '—' }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Location</dt>
+                <dd>{{ equipment.location or '—' }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Purchase Date</dt>
+                <dd>{{ equipment.purchase_date }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Purchase Cost</dt>
+                <dd>${{ "%.2f"|format(equipment.purchase_cost) }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Warranty Expiration</dt>
+                <dd>{{ equipment.warranty_expiration_date }}</dd>
+            </div>
+            <div class="detail-row">
+                <dt>Notes</dt>
+                <dd>{{ equipment.notes or '—' }}</dd>
+            </div>
+        </dl>
+    </div>
+
+    {% if current_user.role == 'admin' %}
+    <div class="card">
+        <h2 class="card-title">Actions</h2>
+
+        <div class="action-section">
+            <h3 class="action-label">Assign / Unassign</h3>
+            {% if equipment.assignee %}
+            <form method="post" action="{{ url_for('equipment_unassign', equipment_id=equipment.id) }}">
+                <input type="hidden" name="expected_updated_at" value="{{ equipment.updated_at.isoformat() }}">
+                <button type="submit" class="btn btn-secondary">Unassign</button>
+            </form>
+            {% else %}
+            <form method="post" action="{{ url_for('equipment_assign', equipment_id=equipment.id) }}" class="inline-form">
+                <input type="hidden" name="expected_updated_at" value="{{ equipment.updated_at.isoformat() }}">
+                <input type="text" name="assignee" placeholder="Employee or department" required>
+                <button type="submit" class="btn btn-primary">Assign</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <div class="action-section">
+            <h3 class="action-label">Change Status</h3>
+            <form method="post" action="{{ url_for('equipment_status', equipment_id=equipment.id) }}" class="inline-form">
+                <input type="hidden" name="expected_updated_at" value="{{ equipment.updated_at.isoformat() }}">
+                <select name="status" required>
+                    {% for s in ['Available', 'Assigned', 'Under Repair', 'Retired'] %}
+                    <option value="{{ s }}" {% if s == equipment.status %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">Update Status</button>
+            </form>
+        </div>
+
+        <div class="action-section">
+            <h3 class="action-label">Delete Equipment</h3>
+            <form method="post" action="{{ url_for('equipment_delete', equipment_id=equipment.id) }}" onsubmit="return confirm('Are you sure you want to delete this equipment? This action cannot be undone.');">
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="card">
+    <h2 class="card-title">History</h2>
+    {% if equipment.history_entries %}
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Action</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for entry in equipment.history_entries|sort(attribute='change_date', reverse=true) %}
+            <tr>
+                <td>{{ entry.change_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>{{ entry.change_type }}</td>
+                <td>{{ entry.description }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="empty-message">No history entries.</p>
+    {% endif %}
+</div>
+
+<style>
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 0.5rem; }
+    .page-title { font-size: 1.5rem; }
+    .page-actions { display: flex; gap: 0.5rem; }
+    .detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+    .card-title { font-size: 1.1rem; margin-bottom: 1rem; color: #1e293b; }
+    .detail-list { margin: 0; }
+    .detail-row { display: flex; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9; }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-row dt { width: 180px; font-weight: 600; color: #64748b; font-size: 0.9rem; flex-shrink: 0; }
+    .detail-row dd { margin: 0; font-size: 0.9rem; }
+    .status-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .status-available { background: #dcfce7; color: #166534; }
+    .status-assigned { background: #dbeafe; color: #1e40af; }
+    .status-under-repair { background: #fef9c3; color: #854d0e; }
+    .status-retired { background: #f1f5f9; color: #64748b; }
+    .action-section { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #f1f5f9; }
+    .action-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+    .action-label { font-size: 0.9rem; font-weight: 600; color: #475569; margin-bottom: 0.5rem; }
+    .inline-form { display: flex; gap: 0.5rem; align-items: center; }
+    .inline-form input, .inline-form select { padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; }
+    .inline-form input:focus, .inline-form select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .empty-message { color: #94a3b8; font-size: 0.9rem; }
+    @media (max-width: 768px) { .detail-grid { grid-template-columns: 1fr; } .detail-row { flex-direction: column; gap: 0.25rem; } .detail-row dt { width: auto; } }
+</style>
+{% endblock %}

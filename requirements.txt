@@ -1,0 +1,6 @@
+Flask==3.1.1
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+gunicorn==23.0.0
+hypothesis==6.122.3
+pytest==8.3.4

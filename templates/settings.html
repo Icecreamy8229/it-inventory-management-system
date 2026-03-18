@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - {{ system_config.app_title if system_config else 'Equipment Inventory' }}{% endblock %}
+
+{% block content %}
+<h1>Settings</h1>
+
+{% if errors is defined and errors %}
+<div class="errors">
+    <ul>
+        {% for error in errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<div class="card">
+    <h2>Branding</h2>
+    <form method="POST" action="{{ url_for('settings_update') }}" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="company_name">Company Name</label>
+            <input type="text" id="company_name" name="company_name" value="{{ config.company_name if config else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="app_title">Application Title</label>
+            <input type="text" id="app_title" name="app_title" value="{{ config.app_title if config else '' }}">
+        </div>
+        <div class="form-group">
+            <label for="logo">Company Logo</label>
+            <input type="file" id="logo" name="logo" accept="image/*">
+            {% if config and config.logo_path %}
+            <p style="margin-top:0.5rem;font-size:0.85rem;color:#64748b;">Current logo: {{ config.logo_path }}</p>
+            {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>Categories</h2>
+
+    {% if categories %}
+    <table>
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cat in categories %}
+            <tr>
+                <td>{{ cat.name }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('settings_delete_category', category_id=cat.id) }}" style="display:inline;" onsubmit="return confirm('Delete category {{ cat.name }}?');">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p>No categories defined.</p>
+    {% endif %}
+
+    <h3 style="margin-top:1rem;">Add Category</h3>
+    <form method="POST" action="{{ url_for('settings_add_category') }}" style="display:flex;gap:0.5rem;align-items:flex-end;">
+        <div class="form-group" style="flex:1;margin-bottom:0;">
+            <label for="category_name">Category Name</label>
+            <input type="text" id="category_name" name="name" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>
+
+<div class="card">
+    <h2>User Management</h2>
+    <p><a href="{{ url_for('settings_users') }}" class="btn btn-secondary">Manage Users</a></p>
+</div>
+{% endblock %}
