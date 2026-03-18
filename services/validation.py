@@ -17,9 +17,7 @@ def validate_equipment_data(data: dict, is_update: bool = False, equipment_id: i
         "manufacturer",
         "model",
         "serial_number",
-        "purchase_date",
         "purchase_cost",
-        "warranty_expiration_date",
     ]
 
     # Check required fields

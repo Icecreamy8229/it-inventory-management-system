@@ -562,7 +562,7 @@ def _parse_equipment_form(form) -> dict:
         except ValueError:
             data["purchase_date"] = purchase_date_str
     else:
-        data["purchase_date"] = ""
+        data["purchase_date"] = None
 
     warranty_date_str = form.get("warranty_expiration_date", "").strip()
     if warranty_date_str:
@@ -571,7 +571,7 @@ def _parse_equipment_form(form) -> dict:
         except ValueError:
             data["warranty_expiration_date"] = warranty_date_str
     else:
-        data["warranty_expiration_date"] = ""
+        data["warranty_expiration_date"] = None
 
     # Parse cost
     cost_str = form.get("purchase_cost", "").strip()

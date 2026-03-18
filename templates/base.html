@@ -60,10 +60,24 @@
         .errors { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; }
         .errors ul { margin: 0; padding-left: 1.25rem; }
 
+        /* Hamburger toggle */
+        .navbar-toggle { display: none; background: none; border: none; cursor: pointer; padding: 0.25rem; }
+        .navbar-toggle span { display: block; width: 22px; height: 2px; background: #cbd5e1; margin: 5px 0; border-radius: 2px; transition: transform 0.2s, opacity 0.2s; }
+        .navbar-toggle[aria-expanded="true"] span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+        .navbar-toggle[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+        .navbar-toggle[aria-expanded="true"] span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+        .navbar-collapse { display: contents; }
+
         /* Responsive */
         @media (max-width: 768px) {
-            .navbar { flex-direction: column; height: auto; padding: 0.75rem; gap: 0.5rem; }
-            .navbar-nav { flex-wrap: wrap; justify-content: center; }
+            .navbar { flex-wrap: wrap; height: auto; padding: 0.75rem 1rem; }
+            .navbar-toggle { display: block; }
+            .navbar-collapse { display: none; flex-direction: column; width: 100%; gap: 0.5rem; padding-top: 0.5rem; }
+            .navbar-collapse.open { display: flex; }
+            .navbar-nav { flex-direction: column; width: 100%; gap: 0; }
+            .navbar-nav a { display: block; padding: 0.6rem 0.75rem; }
+            .navbar-right { width: 100%; justify-content: space-between; padding: 0.5rem 0; border-top: 1px solid #334155; }
             .container { padding: 1rem; }
             table { font-size: 0.85rem; }
             th, td { padding: 0.5rem; }
@@ -79,16 +93,21 @@
             {% endif %}
             {{ system_config.app_title if system_config else 'Equipment Inventory' }}
         </a>
-        <ul class="navbar-nav">
-            <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li><a href="{{ url_for('equipment_list') }}">Equipment</a></li>
-            {% if current_user.role == 'admin' %}
-            <li><a href="{{ url_for('settings') }}">Settings</a></li>
-            {% endif %}
-        </ul>
-        <div class="navbar-right">
-            <span class="navbar-user">{{ current_user.username }} ({{ current_user.role }})</span>
-            <a href="{{ url_for('logout') }}">Logout</a>
+        <button class="navbar-toggle" aria-label="Toggle navigation" aria-expanded="false" onclick="this.setAttribute('aria-expanded', this.getAttribute('aria-expanded')==='false');document.getElementById('navbarCollapse').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <div id="navbarCollapse" class="navbar-collapse">
+            <ul class="navbar-nav">
+                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li><a href="{{ url_for('equipment_list') }}">Equipment</a></li>
+                {% if current_user.role == 'admin' %}
+                <li><a href="{{ url_for('settings') }}">Settings</a></li>
+                {% endif %}
+            </ul>
+            <div class="navbar-right">
+                <span class="navbar-user">{{ current_user.username }} ({{ current_user.role }})</span>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
         </div>
     </nav>
     {% endif %}

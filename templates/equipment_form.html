@@ -62,8 +62,8 @@
             </div>
 
             <div class="form-group">
-                <label for="purchase_date">Purchase Date *</label>
-                <input type="date" id="purchase_date" name="purchase_date" value="{{ data.purchase_date if data else (equipment.purchase_date if equipment else '') }}" required>
+                <label for="purchase_date">Purchase Date</label>
+                <input type="date" id="purchase_date" name="purchase_date" value="{{ data.purchase_date if data else (equipment.purchase_date if equipment else '') }}">
             </div>
 
             <div class="form-group">
@@ -72,8 +72,8 @@
             </div>
 
             <div class="form-group">
-                <label for="warranty_expiration_date">Warranty Expiration Date *</label>
-                <input type="date" id="warranty_expiration_date" name="warranty_expiration_date" value="{{ data.warranty_expiration_date if data else (equipment.warranty_expiration_date if equipment else '') }}" required>
+                <label for="warranty_expiration_date">Warranty Expiration Date</label>
+                <input type="date" id="warranty_expiration_date" name="warranty_expiration_date" value="{{ data.warranty_expiration_date if data else (equipment.warranty_expiration_date if equipment else '') }}">
             </div>
 
             <div class="form-group">
