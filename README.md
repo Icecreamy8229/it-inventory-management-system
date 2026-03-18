@@ -21,7 +21,7 @@ Built with Flask, SQLite, and Docker. No external database required.
 ## Quick Start (Docker)
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/Icecreamy8229/it-inventory-management-system
 cd equipment-inventory
 ```
 
