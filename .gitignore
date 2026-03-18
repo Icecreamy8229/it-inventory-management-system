@@ -16,6 +16,7 @@ ENV/
 
 # Environment variables
 .env
+config.yaml
 
 # IDE
 .vscode/

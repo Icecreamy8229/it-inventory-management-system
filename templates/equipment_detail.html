@@ -124,6 +124,7 @@
                 <th>Date</th>
                 <th>Action</th>
                 <th>Details</th>
+                <th>Changed By</th>
             </tr>
         </thead>
         <tbody>
@@ -132,6 +133,7 @@
                 <td>{{ entry.change_date.strftime('%Y-%m-%d %H:%M') }}</td>
                 <td>{{ entry.change_type }}</td>
                 <td>{{ entry.description }}</td>
+                <td>{{ entry.changed_by or '—' }}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -65,5 +65,9 @@ def create_app(config_overrides=None):
         import models  # noqa: F401
         db.create_all()
 
+        # Seed from config.yaml on first startup
+        from services.seed_service import seed_from_config
+        seed_from_config()
+
     return app
 

@@ -10,7 +10,7 @@ class EquipmentService:
 
     VALID_STATUSES = {"Available", "Assigned", "Under Repair", "Retired"}
 
-    def create_equipment(self, data: dict) -> Equipment:
+    def create_equipment(self, data: dict, username: str = None) -> Equipment:
         """Validate and create a new equipment record with user-provided asset tag."""
         errors = validate_equipment_data(data)
         if errors:
@@ -37,12 +37,13 @@ class EquipmentService:
             equipment_id=equipment.id,
             change_type="Created",
             description="Equipment record created",
+            changed_by=username,
         )
         db.session.add(history)
         db.session.commit()
         return equipment
 
-    def update_equipment(self, equipment_id: int, data: dict, expected_updated_at: datetime = None) -> Equipment:
+    def update_equipment(self, equipment_id: int, data: dict, expected_updated_at: datetime = None, username: str = None) -> Equipment:
         """Validate and update an equipment record, recording history."""
         equipment = db.session.get(Equipment, equipment_id)
         if equipment is None:
@@ -83,13 +84,14 @@ class EquipmentService:
             history = EquipmentHistory(
                 equipment_id=equipment.id, change_type="Updated",
                 description=description, previous_value=previous_value, new_value=new_value,
+                changed_by=username,
             )
             db.session.add(history)
 
         db.session.commit()
         return equipment
 
-    def assign_equipment(self, equipment_id: int, assignee: str, expected_updated_at: datetime = None) -> Equipment:
+    def assign_equipment(self, equipment_id: int, assignee: str, expected_updated_at: datetime = None, username: str = None) -> Equipment:
         """Assign equipment to an employee/department. Rejects if Retired or Under Repair."""
         equipment = db.session.get(Equipment, equipment_id)
         if equipment is None:
@@ -105,12 +107,13 @@ class EquipmentService:
         history = EquipmentHistory(
             equipment_id=equipment.id, change_type="Assignment",
             description=f"Assigned to {assignee}", previous_value=previous_assignee, new_value=assignee,
+            changed_by=username,
         )
         db.session.add(history)
         db.session.commit()
         return equipment
 
-    def unassign_equipment(self, equipment_id: int, expected_updated_at: datetime = None) -> Equipment:
+    def unassign_equipment(self, equipment_id: int, expected_updated_at: datetime = None, username: str = None) -> Equipment:
         """Unassign equipment and set status to Available."""
         equipment = db.session.get(Equipment, equipment_id)
         if equipment is None:
@@ -124,12 +127,13 @@ class EquipmentService:
         history = EquipmentHistory(
             equipment_id=equipment.id, change_type="Unassignment",
             description=f"Unassigned from {previous_assignee}", previous_value=previous_assignee, new_value=None,
+            changed_by=username,
         )
         db.session.add(history)
         db.session.commit()
         return equipment
 
-    def change_status(self, equipment_id: int, new_status: str, expected_updated_at: datetime = None) -> Equipment:
+    def change_status(self, equipment_id: int, new_status: str, expected_updated_at: datetime = None, username: str = None) -> Equipment:
         """Change equipment status, enforcing transition rules."""
         equipment = db.session.get(Equipment, equipment_id)
         if equipment is None:
@@ -147,6 +151,7 @@ class EquipmentService:
             equipment_id=equipment.id, change_type="StatusChange",
             description=f"Status changed from {previous_status} to {new_status}",
             previous_value=previous_status, new_value=new_status,
+            changed_by=username,
         )
         db.session.add(history)
         db.session.commit()

@@ -201,7 +201,7 @@ def register_routes(app):
 
         equipment_service = EquipmentService()
         try:
-            equipment = equipment_service.create_equipment(data)
+            equipment = equipment_service.create_equipment(data, username=current_user.username)
         except ValueError as e:
             category_service = CategoryService()
             categories = category_service.list_categories()
@@ -257,7 +257,7 @@ def register_routes(app):
         equipment_service = EquipmentService()
         try:
             equipment = equipment_service.update_equipment(
-                equipment_id, data, expected_updated_at=expected_updated_at
+                equipment_id, data, expected_updated_at=expected_updated_at, username=current_user.username
             )
         except ConflictError as e:
             flash(str(e), "error")
@@ -318,7 +318,7 @@ def register_routes(app):
         equipment_service = EquipmentService()
         try:
             equipment_service.assign_equipment(
-                equipment_id, assignee, expected_updated_at=expected_updated_at
+                equipment_id, assignee, expected_updated_at=expected_updated_at, username=current_user.username
             )
         except ConflictError as e:
             flash(str(e), "error")
@@ -343,7 +343,7 @@ def register_routes(app):
         equipment_service = EquipmentService()
         try:
             equipment_service.unassign_equipment(
-                equipment_id, expected_updated_at=expected_updated_at
+                equipment_id, expected_updated_at=expected_updated_at, username=current_user.username
             )
         except ConflictError as e:
             flash(str(e), "error")
@@ -373,7 +373,7 @@ def register_routes(app):
         equipment_service = EquipmentService()
         try:
             equipment_service.change_status(
-                equipment_id, new_status, expected_updated_at=expected_updated_at
+                equipment_id, new_status, expected_updated_at=expected_updated_at, username=current_user.username
             )
         except ConflictError as e:
             flash(str(e), "error")

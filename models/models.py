@@ -38,6 +38,7 @@ class EquipmentHistory(db.Model):
     description = db.Column(db.Text, nullable=False)
     previous_value = db.Column(db.String(200), nullable=True)
     new_value = db.Column(db.String(200), nullable=True)
+    changed_by = db.Column(db.String(80), nullable=True)
 
 
 class SystemConfig(db.Model):
