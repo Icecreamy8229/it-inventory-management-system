@@ -3,40 +3,34 @@
 {% block title %}Login{% endblock %}
 
 {% block content %}
-<div class="login-wrapper">
-    <div class="card login-card">
-        {% if system_config %}
-        <p class="login-company">{{ system_config.company_name }}</p>
-        <h1>{{ system_config.app_title }}</h1>
-        {% else %}
-        <h1>Sign in</h1>
-        {% endif %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="card">
+            <div class="card-body p-4">
+                {% if system_config %}
+                <p class="text-center text-muted small mb-1">{{ system_config.company_name }}</p>
+                <h1 class="h4 text-center mb-4">{{ system_config.app_title }}</h1>
+                {% else %}
+                <h1 class="h4 text-center mb-4">Sign in</h1>
+                {% endif %}
 
-        {% if error %}
-        <div class="errors">{{ error }}</div>
-        {% endif %}
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
 
-        <form method="POST" action="{{ url_for('login_post') }}">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" value="{{ username|default('', true) }}" required autofocus>
+                <form method="POST" action="{{ url_for('login_post') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" value="{{ username|default('', true) }}" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Log in</button>
+                </form>
             </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block">Log in</button>
-        </form>
+        </div>
     </div>
 </div>
-
-<style>
-    .login-wrapper { max-width: 400px; margin: 4rem auto; }
-    .login-card { padding: 2rem; }
-    .login-card h1 { font-size: 1.4rem; margin-bottom: 1rem; text-align: center; }
-    .login-company { text-align: center; color: #64748b; font-size: 0.85rem; margin-bottom: 0.25rem; }
-    .btn-block { width: 100%; margin-top: 1rem; padding: 0.75rem; font-size: 1rem; }
-</style>
 {% endblock %}

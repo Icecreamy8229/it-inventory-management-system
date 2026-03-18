@@ -3,92 +3,79 @@
 {% block title %}Equipment List{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">Equipment</h1>
-    <div class="page-actions">
-        <a href="{{ url_for('equipment_export', search=search, sort_by=sort_by, sort_order=sort_order, filter=filter_type) }}" class="btn btn-secondary">Export Excel</a>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Equipment</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('equipment_export', search=search, sort_by=sort_by, sort_order=sort_order, filter=filter_type) }}" class="btn btn-outline-secondary">Export Excel</a>
         {% if current_user.role == 'admin' %}
         <a href="{{ url_for('equipment_new') }}" class="btn btn-primary">Add Equipment</a>
         {% endif %}
     </div>
 </div>
 
-<div class="card">
-    {% if filter_label %}
-    <div class="filter-banner">
-        <span>Filtered: {{ filter_label }}</span>
-        <a href="{{ url_for('equipment_list') }}" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Clear Filter</a>
-    </div>
-    {% endif %}
-    <form method="get" action="{{ url_for('equipment_list') }}" class="search-form">
-        <input type="hidden" name="sort_by" value="{{ sort_by }}">
-        <input type="hidden" name="sort_order" value="{{ sort_order }}">
-        <div class="search-row">
-            <input type="text" name="search" value="{{ search }}" placeholder="Search by asset tag, name, serial number, category, assignee, location, or notes..." class="search-input" id="search-input">
-            <button type="submit" class="btn btn-primary">Search</button>
-            {% if search %}
-            <a href="{{ url_for('equipment_list', sort_by=sort_by, sort_order=sort_order) }}" class="btn btn-secondary">Clear</a>
-            {% endif %}
+<div class="card mb-3">
+    <div class="card-body">
+        {% if filter_label %}
+        <div class="alert alert-info d-flex justify-content-between align-items-center py-2 mb-3">
+            <span>Filtered: {{ filter_label }}</span>
+            <a href="{{ url_for('equipment_list') }}" class="btn btn-sm btn-outline-secondary">Clear Filter</a>
         </div>
-    </form>
+        {% endif %}
+        <form method="get" action="{{ url_for('equipment_list') }}">
+            <input type="hidden" name="sort_by" value="{{ sort_by }}">
+            <input type="hidden" name="sort_order" value="{{ sort_order }}">
+            <div class="input-group">
+                <input type="text" name="search" value="{{ search }}" placeholder="Search by asset tag, name, serial number, category, assignee, location, or notes..." class="form-control" id="search-input">
+                <button type="submit" class="btn btn-primary">Search</button>
+                {% if search %}
+                <a href="{{ url_for('equipment_list', sort_by=sort_by, sort_order=sort_order) }}" class="btn btn-outline-secondary">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
 </div>
 
 {% if equipment %}
-<table>
-    <thead>
-        <tr>
-            {% for col_field, col_label in [('asset_tag', 'Asset Tag'), ('name', 'Name'), ('category', 'Category'), ('status', 'Status'), ('assignee', 'Assignee'), ('location', 'Location')] %}
-            <th>
-                {% set new_order = 'desc' if sort_by == col_field and sort_order == 'asc' else 'asc' %}
-                <a href="{{ url_for('equipment_list', search=search, sort_by=col_field, sort_order=new_order) }}" class="sort-header{% if sort_by == col_field %} active{% endif %}">
-                    {{ col_label }}
-                    {% if sort_by == col_field %}
-                        <span class="sort-arrow">{{ '▲' if sort_order == 'asc' else '▼' }}</span>
-                    {% endif %}
-                </a>
-            </th>
+<div class="table-responsive">
+    <table class="table table-hover bg-white">
+        <thead class="table-light">
+            <tr>
+                {% for col_field, col_label in [('asset_tag', 'Asset Tag'), ('name', 'Name'), ('category', 'Category'), ('status', 'Status'), ('assignee', 'Assignee'), ('location', 'Location')] %}
+                <th>
+                    {% set new_order = 'desc' if sort_by == col_field and sort_order == 'asc' else 'asc' %}
+                    <a href="{{ url_for('equipment_list', search=search, sort_by=col_field, sort_order=new_order) }}" class="text-decoration-none text-dark {{ 'fw-bold' if sort_by == col_field }}">
+                        {{ col_label }}
+                        {% if sort_by == col_field %}
+                            <span class="small">{{ '▲' if sort_order == 'asc' else '▼' }}</span>
+                        {% endif %}
+                    </a>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in equipment %}
+            <tr>
+                <td><a href="{{ url_for('equipment_detail', equipment_id=item.id) }}">{{ item.asset_tag }}</a></td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category }}</td>
+                <td>
+                    {% set badge_map = {'available': 'success', 'assigned': 'primary', 'under-repair': 'warning', 'retired': 'secondary'} %}
+                    {% set badge_key = item.status|lower|replace(' ', '-') %}
+                    <span class="badge bg-{{ badge_map.get(badge_key, 'secondary') }}">{{ item.status }}</span>
+                </td>
+                <td>{{ item.assignee or '—' }}</td>
+                <td>{{ item.location or '—' }}</td>
+            </tr>
             {% endfor %}
-        </tr>
-    </thead>
-    <tbody>
-        {% for item in equipment %}
-        <tr>
-            <td><a href="{{ url_for('equipment_detail', equipment_id=item.id) }}">{{ item.asset_tag }}</a></td>
-            <td>{{ item.name }}</td>
-            <td>{{ item.category }}</td>
-            <td><span class="status-badge status-{{ item.status|lower|replace(' ', '-') }}">{{ item.status }}</span></td>
-            <td>{{ item.assignee or '—' }}</td>
-            <td>{{ item.location or '—' }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        </tbody>
+    </table>
+</div>
 {% else %}
-<div class="card empty-state">
-    <p class="empty-message">No equipment found{% if search %} matching "{{ search }}"{% endif %}.</p>
+<div class="card">
+    <div class="card-body text-center py-5">
+        <p class="text-muted mb-0">No equipment found{% if search %} matching "{{ search }}"{% endif %}.</p>
+    </div>
 </div>
 {% endif %}
-
-<style>
-    .filter-banner { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; background: #dbeafe; border-radius: 6px; font-size: 0.9rem; color: #1e40af; }
-    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
-    .page-actions { display: flex; gap: 0.5rem; }
-    .page-title { font-size: 1.5rem; }
-    .search-form { margin: 0; }
-    .search-row { display: flex; gap: 0.5rem; align-items: center; }
-    .search-input { flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; }
-    .search-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
-    .sort-header { color: #64748b; text-decoration: none; display: inline-flex; align-items: center; gap: 0.25rem; }
-    .sort-header:hover { color: #1e293b; text-decoration: none; }
-    .sort-header.active { color: #1e293b; font-weight: 700; }
-    .sort-arrow { font-size: 0.75rem; }
-    .status-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
-    .status-available { background: #dcfce7; color: #166534; }
-    .status-assigned { background: #dbeafe; color: #1e40af; }
-    .status-under-repair { background: #fef9c3; color: #854d0e; }
-    .status-retired { background: #f1f5f9; color: #64748b; }
-    .empty-state { text-align: center; padding: 2rem; }
-    .empty-message { color: #94a3b8; font-size: 0.95rem; }
-    .card { margin-bottom: 1rem; }
-</style>
 {% endblock %}

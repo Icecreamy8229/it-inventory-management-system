@@ -3,93 +3,74 @@
 {% block title %}Setup Wizard{% endblock %}
 
 {% block content %}
-<div class="setup-wrapper">
-    <div class="card setup-card">
-        <h1>Welcome — Let's set up your inventory</h1>
-        <p class="setup-subtitle">Configure your company branding, equipment categories, and admin account to get started.</p>
+<div class="row justify-content-center mt-3">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-body p-4">
+                <h1 class="h4 mb-1">Welcome — Let's set up your inventory</h1>
+                <p class="text-muted mb-4">Configure your company branding, equipment categories, and admin account to get started.</p>
 
-        {% if errors %}
-        <div class="errors">
-            <ul>
-                {% for error in errors %}
-                <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-        {% endif %}
-
-        <form method="POST" action="{{ url_for('setup_post') }}" enctype="multipart/form-data">
-            <h2>Company Branding</h2>
-
-            <div class="form-group">
-                <label for="company_name">Company Name</label>
-                <input type="text" id="company_name" name="company_name" value="{{ company_name|default('', true) }}" required>
-            </div>
-
-            <div class="form-group">
-                <label for="app_title">Application Title</label>
-                <input type="text" id="app_title" name="app_title" value="{{ app_title|default('', true) }}" required>
-            </div>
-
-            <div class="form-group">
-                <label for="logo">Company Logo (optional)</label>
-                <input type="file" id="logo" name="logo" accept="image/*">
-            </div>
-
-            <h2>Equipment Categories</h2>
-            <p class="setup-hint">Add or remove categories for organizing your equipment.</p>
-
-            <div id="category-list">
-                {% for cat in default_categories %}
-                <div class="category-item">
-                    <input type="hidden" name="categories" value="{{ cat }}">
-                    <span>{{ cat }}</span>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="removeCategory(this)">Remove</button>
+                {% if errors %}
+                <div class="alert alert-danger">
+                    <ul class="mb-0">
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
-                {% endfor %}
+                {% endif %}
+
+                <form method="POST" action="{{ url_for('setup_post') }}" enctype="multipart/form-data">
+                    <h2 class="h6 border-bottom pb-2 mb-3">Company Branding</h2>
+                    <div class="mb-3">
+                        <label for="company_name" class="form-label">Company Name</label>
+                        <input type="text" class="form-control" id="company_name" name="company_name" value="{{ company_name|default('', true) }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="app_title" class="form-label">Application Title</label>
+                        <input type="text" class="form-control" id="app_title" name="app_title" value="{{ app_title|default('', true) }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="logo" class="form-label">Company Logo (optional)</label>
+                        <input type="file" class="form-control" id="logo" name="logo" accept="image/*">
+                    </div>
+
+                    <h2 class="h6 border-bottom pb-2 mb-3">Equipment Categories</h2>
+                    <p class="text-muted small mb-2">Add or remove categories for organizing your equipment.</p>
+                    <div id="category-list" class="mb-2">
+                        {% for cat in default_categories %}
+                        <div class="d-flex justify-content-between align-items-center p-2 bg-light border rounded mb-1 category-item">
+                            <input type="hidden" name="categories" value="{{ cat }}">
+                            <span>{{ cat }}</span>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="removeCategory(this)">Remove</button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" id="new-category" placeholder="New category name">
+                        <button type="button" class="btn btn-outline-secondary" onclick="addCategory()">Add</button>
+                    </div>
+
+                    <h2 class="h6 border-bottom pb-2 mb-3">Admin Account</h2>
+                    <div class="mb-3">
+                        <label for="admin_username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="admin_username" name="admin_username" value="{{ admin_username|default('', true) }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="admin_password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="admin_password" name="admin_password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="admin_password_confirm" class="form-label">Confirm Password</label>
+                        <input type="password" class="form-control" id="admin_password_confirm" name="admin_password_confirm" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 mt-2">Complete Setup</button>
+                </form>
             </div>
-
-            <div class="category-add">
-                <input type="text" id="new-category" placeholder="New category name">
-                <button type="button" class="btn btn-secondary" onclick="addCategory()">Add</button>
-            </div>
-
-            <h2>Admin Account</h2>
-
-            <div class="form-group">
-                <label for="admin_username">Username</label>
-                <input type="text" id="admin_username" name="admin_username" value="{{ admin_username|default('', true) }}" required>
-            </div>
-
-            <div class="form-group">
-                <label for="admin_password">Password</label>
-                <input type="password" id="admin_password" name="admin_password" required>
-            </div>
-
-            <div class="form-group">
-                <label for="admin_password_confirm">Confirm Password</label>
-                <input type="password" id="admin_password_confirm" name="admin_password_confirm" required>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block">Complete Setup</button>
-        </form>
+        </div>
     </div>
 </div>
-
-<style>
-    .setup-wrapper { max-width: 600px; margin: 2rem auto; }
-    .setup-card { padding: 2rem; }
-    .setup-card h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
-    .setup-card h2 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.5rem; }
-    .setup-subtitle { color: #64748b; margin-bottom: 1rem; font-size: 0.95rem; }
-    .setup-hint { color: #64748b; font-size: 0.85rem; margin-bottom: 0.5rem; }
-    .category-item { display: flex; align-items: center; justify-content: space-between; padding: 0.4rem 0.75rem; background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 0.35rem; }
-    .category-item span { font-size: 0.9rem; }
-    .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
-    .category-add { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
-    .category-add input { flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; }
-    .btn-block { width: 100%; margin-top: 1.5rem; padding: 0.75rem; font-size: 1rem; }
-</style>
 {% endblock %}
 
 {% block extra_js %}
@@ -103,7 +84,6 @@ function addCategory() {
     var name = input.value.trim();
     if (!name) return;
 
-    // Check for duplicates
     var existing = document.querySelectorAll('#category-list input[name="categories"]');
     for (var i = 0; i < existing.length; i++) {
         if (existing[i].value.toLowerCase() === name.toLowerCase()) {
@@ -113,7 +93,7 @@ function addCategory() {
     }
 
     var div = document.createElement('div');
-    div.className = 'category-item';
+    div.className = 'd-flex justify-content-between align-items-center p-2 bg-light border rounded mb-1 category-item';
     div.innerHTML = '<input type="hidden" name="categories" value="' + name.replace(/"/g, '&quot;') + '">' +
         '<span>' + name.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</span>' +
         '<button type="button" class="btn btn-danger btn-sm" onclick="removeCategory(this)">Remove</button>';

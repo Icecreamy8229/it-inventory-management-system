@@ -3,11 +3,11 @@
 {% block title %}Settings - {{ system_config.app_title if system_config else 'Equipment Inventory' }}{% endblock %}
 
 {% block content %}
-<h1>Settings</h1>
+<h1 class="h3 mb-4">Settings</h1>
 
 {% if errors is defined and errors %}
-<div class="errors">
-    <ul>
+<div class="alert alert-danger">
+    <ul class="mb-0">
         {% for error in errors %}
         <li>{{ error }}</li>
         {% endfor %}
@@ -15,68 +15,75 @@
 </div>
 {% endif %}
 
-<div class="card">
-    <h2>Branding</h2>
-    <form method="POST" action="{{ url_for('settings_update') }}" enctype="multipart/form-data">
-        <div class="form-group">
-            <label for="company_name">Company Name</label>
-            <input type="text" id="company_name" name="company_name" value="{{ config.company_name if config else '' }}">
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Branding</h2>
+        <form method="POST" action="{{ url_for('settings_update') }}" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="company_name" class="form-label">Company Name</label>
+                <input type="text" class="form-control" id="company_name" name="company_name" value="{{ config.company_name if config else '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="app_title" class="form-label">Application Title</label>
+                <input type="text" class="form-control" id="app_title" name="app_title" value="{{ config.app_title if config else '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="logo" class="form-label">Company Logo</label>
+                <input type="file" class="form-control" id="logo" name="logo" accept="image/*">
+                {% if config and config.logo_path %}
+                <div class="form-text">Current logo: {{ config.logo_path }}</div>
+                {% endif %}
+            </div>
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+        </form>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Categories</h2>
+        {% if categories %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-3">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cat in categories %}
+                    <tr>
+                        <td>{{ cat.name }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('settings_delete_category', category_id=cat.id) }}" class="d-inline" onsubmit="return confirm('Delete category {{ cat.name }}?');">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <div class="form-group">
-            <label for="app_title">Application Title</label>
-            <input type="text" id="app_title" name="app_title" value="{{ config.app_title if config else '' }}">
-        </div>
-        <div class="form-group">
-            <label for="logo">Company Logo</label>
-            <input type="file" id="logo" name="logo" accept="image/*">
-            {% if config and config.logo_path %}
-            <p style="margin-top:0.5rem;font-size:0.85rem;color:#64748b;">Current logo: {{ config.logo_path }}</p>
-            {% endif %}
-        </div>
-        <button type="submit" class="btn btn-primary">Save Settings</button>
-    </form>
+        {% else %}
+        <p class="text-muted">No categories defined.</p>
+        {% endif %}
+
+        <h3 class="h6 mt-3">Add Category</h3>
+        <form method="POST" action="{{ url_for('settings_add_category') }}" class="d-flex gap-2 align-items-end">
+            <div class="flex-grow-1">
+                <label for="category_name" class="form-label">Category Name</label>
+                <input type="text" class="form-control" id="category_name" name="name" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+    </div>
 </div>
 
 <div class="card">
-    <h2>Categories</h2>
-
-    {% if categories %}
-    <table>
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for cat in categories %}
-            <tr>
-                <td>{{ cat.name }}</td>
-                <td>
-                    <form method="POST" action="{{ url_for('settings_delete_category', category_id=cat.id) }}" style="display:inline;" onsubmit="return confirm('Delete category {{ cat.name }}?');">
-                        <button type="submit" class="btn btn-danger">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <p>No categories defined.</p>
-    {% endif %}
-
-    <h3 style="margin-top:1rem;">Add Category</h3>
-    <form method="POST" action="{{ url_for('settings_add_category') }}" style="display:flex;gap:0.5rem;align-items:flex-end;">
-        <div class="form-group" style="flex:1;margin-bottom:0;">
-            <label for="category_name">Category Name</label>
-            <input type="text" id="category_name" name="name" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Add</button>
-    </form>
-</div>
-
-<div class="card">
-    <h2>User Management</h2>
-    <p><a href="{{ url_for('settings_users') }}" class="btn btn-secondary">Manage Users</a></p>
+    <div class="card-body">
+        <h2 class="h5 mb-3">User Management</h2>
+        <a href="{{ url_for('settings_users') }}" class="btn btn-outline-secondary">Manage Users</a>
+    </div>
 </div>
 {% endblock %}
