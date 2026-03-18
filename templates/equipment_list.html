@@ -11,6 +11,12 @@
 </div>
 
 <div class="card">
+    {% if filter_label %}
+    <div class="filter-banner">
+        <span>Filtered: {{ filter_label }}</span>
+        <a href="{{ url_for('equipment_list') }}" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Clear Filter</a>
+    </div>
+    {% endif %}
     <form method="get" action="{{ url_for('equipment_list') }}" class="search-form">
         <input type="hidden" name="sort_by" value="{{ sort_by }}">
         <input type="hidden" name="sort_order" value="{{ sort_order }}">
@@ -61,6 +67,7 @@
 {% endif %}
 
 <style>
+    .filter-banner { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; background: #dbeafe; border-radius: 6px; font-size: 0.9rem; color: #1e40af; }
     .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
     .page-title { font-size: 1.5rem; }
     .search-form { margin: 0; }

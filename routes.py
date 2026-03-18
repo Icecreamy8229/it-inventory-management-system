@@ -155,19 +155,38 @@ def register_routes(app):
         search = request.args.get("search", "").strip()
         sort_by = request.args.get("sort_by", "")
         sort_order = request.args.get("sort_order", "asc")
+        filter_type = request.args.get("filter", "").strip()
 
         equipment_service = EquipmentService()
         items = equipment_service.list_equipment(
             search=search or None,
             sort_by=sort_by or None,
             sort_order=sort_order,
+            filter_type=filter_type or None,
         )
+
+        # Build a human-readable label for active filters
+        filter_label = ""
+        if filter_type:
+            if filter_type == "warranty_expiring":
+                filter_label = "Warranties Expiring (next 90 days)"
+            elif filter_type == "aging":
+                filter_label = "Aging Equipment (4+ years)"
+            elif filter_type.startswith("status:"):
+                filter_label = f"Status: {filter_type.split(':', 1)[1]}"
+            elif filter_type.startswith("category:"):
+                filter_label = f"Category: {filter_type.split(':', 1)[1]}"
+            elif filter_type.startswith("assignee:"):
+                filter_label = f"Assignee: {filter_type.split(':', 1)[1]}"
+
         return render_template(
             "equipment_list.html",
             equipment=items,
             search=search,
             sort_by=sort_by,
             sort_order=sort_order,
+            filter_type=filter_type,
+            filter_label=filter_label,
         )
 
     @app.route("/equipment/scan-lookup")

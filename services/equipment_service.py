@@ -157,9 +157,33 @@ class EquipmentService:
         db.session.commit()
         return equipment
 
-    def list_equipment(self, search: str = None, sort_by: str = None, sort_order: str = "asc") -> list:
-        """List equipment with optional search and sorting."""
+    def list_equipment(self, search: str = None, sort_by: str = None, sort_order: str = "asc", filter_type: str = None) -> list:
+        """List equipment with optional search, sorting, and preset filters."""
+        from datetime import date, timedelta
+
         query = Equipment.query
+
+        # Apply preset filters
+        if filter_type:
+            if filter_type == "warranty_expiring":
+                today = date.today()
+                query = query.filter(
+                    Equipment.warranty_expiration_date.isnot(None),
+                    Equipment.warranty_expiration_date >= today,
+                    Equipment.warranty_expiration_date <= today + timedelta(days=90),
+                )
+            elif filter_type == "aging":
+                cutoff = date.today() - timedelta(days=int(4 * 365.25))
+                query = query.filter(
+                    Equipment.purchase_date.isnot(None),
+                    Equipment.purchase_date <= cutoff,
+                )
+            elif filter_type.startswith("status:"):
+                query = query.filter(Equipment.status == filter_type.split(":", 1)[1])
+            elif filter_type.startswith("category:"):
+                query = query.filter(Equipment.category == filter_type.split(":", 1)[1])
+            elif filter_type.startswith("assignee:"):
+                query = query.filter(Equipment.assignee == filter_type.split(":", 1)[1])
 
         if search:
             pattern = f"%{search}%"
@@ -194,14 +218,77 @@ class EquipmentService:
         return Equipment.query.filter_by(asset_tag=asset_tag).first()
 
     def get_dashboard_summary(self) -> dict:
-        """Return counts grouped by status and category."""
+        """Return counts grouped by status, category, plus warranty alerts, asset value, age, and assignment density."""
+        from datetime import date, timedelta
+
         equipment_list = Equipment.query.all()
+        today = date.today()
+
         by_status: dict[str, int] = {}
         by_category: dict[str, int] = {}
+        total_value = 0.0
+        value_by_category: dict[str, float] = {}
+        value_by_status: dict[str, float] = {}
+        warranty_expiring: list[Equipment] = []
+        aging_items: list[Equipment] = []
+        by_assignee: dict[str, int] = {}
+        age_by_category: dict[str, list[int]] = {}
+
         for item in equipment_list:
+            # Status counts
             by_status[item.status] = by_status.get(item.status, 0) + 1
+
+            # Category counts
             by_category[item.category] = by_category.get(item.category, 0) + 1
-        return {"by_status": by_status, "by_category": by_category}
+
+            # Asset value
+            cost = item.purchase_cost or 0
+            total_value += cost
+            value_by_category[item.category] = value_by_category.get(item.category, 0) + cost
+            value_by_status[item.status] = value_by_status.get(item.status, 0) + cost
+
+            # Warranty expiring within 90 days
+            if item.warranty_expiration_date and today <= item.warranty_expiration_date <= today + timedelta(days=90):
+                warranty_expiring.append(item)
+
+            # Equipment age
+            if item.purchase_date:
+                age_days = (today - item.purchase_date).days
+                age_years = age_days / 365.25
+                if item.category not in age_by_category:
+                    age_by_category[item.category] = []
+                age_by_category[item.category].append(age_days)
+                if age_years >= 4:
+                    aging_items.append(item)
+
+            # Assignment density
+            if item.assignee:
+                by_assignee[item.assignee] = by_assignee.get(item.assignee, 0) + 1
+
+        # Compute average age per category in years
+        avg_age_by_category = {}
+        for cat, ages in age_by_category.items():
+            avg_days = sum(ages) / len(ages)
+            avg_age_by_category[cat] = round(avg_days / 365.25, 1)
+
+        # Sort warranty expiring by date
+        warranty_expiring.sort(key=lambda e: e.warranty_expiration_date)
+
+        # Sort assignees by count descending
+        by_assignee = dict(sorted(by_assignee.items(), key=lambda x: x[1], reverse=True))
+
+        return {
+            "by_status": by_status,
+            "by_category": by_category,
+            "total_value": total_value,
+            "value_by_category": value_by_category,
+            "value_by_status": value_by_status,
+            "warranty_expiring": warranty_expiring,
+            "aging_items": aging_items,
+            "avg_age_by_category": avg_age_by_category,
+            "by_assignee": by_assignee,
+            "total_count": len(equipment_list),
+        }
 
     def get_equipment(self, equipment_id: int) -> Equipment:
         """Retrieve a single equipment record with full details."""

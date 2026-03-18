@@ -1,0 +1,24 @@
+# Equipment Inventory - Initial Configuration
+# Copy this file to config.yaml and fill in your values.
+# The app will read this on first startup to seed the database.
+# After setup is complete, this file is ignored.
+
+# Company / branding
+company_name: "My Company"
+app_title: "Equipment Inventory"
+
+# Initial admin account
+admin_username: "admin"
+admin_password: "changeme"
+
+# Default equipment categories (optional)
+# Remove or add categories as needed
+categories:
+  - "Laptop"
+  - "Desktop"
+  - "Monitor"
+  - "Printer"
+  - "Networking"
+  - "Mobile Device"
+  - "Peripheral"
+  - "Other"

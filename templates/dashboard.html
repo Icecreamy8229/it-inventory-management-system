@@ -5,16 +5,37 @@
 {% block content %}
 <h1 class="page-title">Dashboard</h1>
 
+<!-- Top stats row -->
+<div class="stats-row">
+    <a href="{{ url_for('equipment_list') }}" class="stat-card">
+        <span class="stat-value">{{ summary.total_count }}</span>
+        <span class="stat-label">Total Equipment</span>
+    </a>
+    <div class="stat-card">
+        <span class="stat-value">${{ "{:,.2f}".format(summary.total_value) }}</span>
+        <span class="stat-label">Total Asset Value</span>
+    </div>
+    <a href="{{ url_for('equipment_list', filter='warranty_expiring') }}" class="stat-card {{ 'stat-warn' if summary.warranty_expiring|length > 0 }}">
+        <span class="stat-value">{{ summary.warranty_expiring|length }}</span>
+        <span class="stat-label">Warranties Expiring (90 days)</span>
+    </a>
+    <a href="{{ url_for('equipment_list', filter='aging') }}" class="stat-card {{ 'stat-warn' if summary.aging_items|length > 0 }}">
+        <span class="stat-value">{{ summary.aging_items|length }}</span>
+        <span class="stat-label">Aging Equipment (4+ years)</span>
+    </a>
+</div>
+
 <div class="dashboard-grid">
+    <!-- By Status -->
     <div class="card">
         <h2 class="card-title">Equipment by Status</h2>
         {% if summary.by_status %}
         <div class="summary-grid">
             {% for status, count in summary.by_status.items() %}
-            <div class="summary-item">
+            <a href="{{ url_for('equipment_list', filter='status:' + status) }}" class="summary-item summary-link">
                 <span class="summary-label">{{ status }}</span>
                 <span class="summary-count">{{ count }}</span>
-            </div>
+            </a>
             {% endfor %}
         </div>
         {% else %}
@@ -22,32 +43,159 @@
         {% endif %}
     </div>
 
+    <!-- By Category -->
     <div class="card">
         <h2 class="card-title">Equipment by Category</h2>
         {% if summary.by_category %}
         <div class="summary-grid">
             {% for category, count in summary.by_category.items() %}
-            <div class="summary-item">
+            <a href="{{ url_for('equipment_list', filter='category:' + category) }}" class="summary-item summary-link">
                 <span class="summary-label">{{ category }}</span>
                 <span class="summary-count">{{ count }}</span>
-            </div>
+            </a>
             {% endfor %}
         </div>
         {% else %}
         <p class="empty-message">No equipment registered yet.</p>
         {% endif %}
     </div>
+
+    <!-- Asset Value by Category -->
+    <div class="card">
+        <h2 class="card-title">Asset Value by Category</h2>
+        {% if summary.value_by_category %}
+        <div class="summary-grid">
+            {% for category, value in summary.value_by_category.items() %}
+            <a href="{{ url_for('equipment_list', filter='category:' + category) }}" class="summary-item summary-link">
+                <span class="summary-label">{{ category }}</span>
+                <span class="summary-count">${{ "{:,.2f}".format(value) }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-message">No data available.</p>
+        {% endif %}
+    </div>
+
+    <!-- Average Age by Category -->
+    <div class="card">
+        <h2 class="card-title">Average Age by Category</h2>
+        {% if summary.avg_age_by_category %}
+        <div class="summary-grid">
+            {% for category, years in summary.avg_age_by_category.items() %}
+            <a href="{{ url_for('equipment_list', filter='category:' + category) }}" class="summary-item summary-link">
+                <span class="summary-label">{{ category }}</span>
+                <span class="summary-count {{ 'text-warn' if years >= 4 }}">{{ years }} yr{{ 's' if years != 1 }}</span>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="empty-message">No purchase dates recorded.</p>
+        {% endif %}
+    </div>
 </div>
+
+<!-- Warranty Expiring Soon -->
+{% if summary.warranty_expiring %}
+<div class="card" style="margin-top: 1rem;">
+    <h2 class="card-title">Warranties Expiring Soon</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Asset Tag</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Warranty Expires</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in summary.warranty_expiring %}
+            <tr>
+                <td><a href="{{ url_for('equipment_detail', equipment_id=item.id) }}">{{ item.asset_tag }}</a></td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category }}</td>
+                <td>{{ item.warranty_expiration_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Aging Equipment -->
+{% if summary.aging_items %}
+<div class="card" style="margin-top: 1rem;">
+    <h2 class="card-title">Aging Equipment (4+ Years)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Asset Tag</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Purchase Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in summary.aging_items %}
+            <tr>
+                <td><a href="{{ url_for('equipment_detail', equipment_id=item.id) }}">{{ item.asset_tag }}</a></td>
+                <td>{{ item.name }}</td>
+                <td>{{ item.category }}</td>
+                <td>{{ item.purchase_date }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+<!-- Assignment Density -->
+{% if summary.by_assignee %}
+<div class="card" style="margin-top: 1rem;">
+    <h2 class="card-title">Equipment by Assignee</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Assignee</th>
+                <th>Items Assigned</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assignee, count in summary.by_assignee.items() %}
+            <tr class="clickable-row" onclick="window.location='{{ url_for('equipment_list', filter='assignee:' + assignee) }}'">
+                <td>{{ assignee }}</td>
+                <td>{{ count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
 
 <style>
     .page-title { font-size: 1.5rem; margin-bottom: 1.25rem; }
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1rem; }
+    .stat-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 1.25rem; text-align: center; text-decoration: none; color: inherit; transition: box-shadow 0.15s; }
+    a.stat-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); text-decoration: none; }
+    .stat-value { display: block; font-size: 1.6rem; font-weight: 700; color: #1e293b; }
+    .stat-label { display: block; font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; }
+    .stat-warn { border-left: 3px solid #f59e0b; }
+    .stat-warn .stat-value { color: #d97706; }
     .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .card-title { font-size: 1.1rem; margin-bottom: 1rem; color: #1e293b; }
     .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     .summary-item { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; background: #f8fafc; border-radius: 6px; }
+    .summary-link { text-decoration: none; color: inherit; transition: background 0.15s; }
+    .summary-link:hover { background: #e2e8f0; text-decoration: none; }
+    .clickable-row { cursor: pointer; }
+    .clickable-row:hover { background: #e2e8f0; }
     .summary-label { font-size: 0.9rem; color: #475569; }
     .summary-count { font-size: 1.1rem; font-weight: 700; color: #1e293b; }
+    .text-warn { color: #d97706; }
     .empty-message { color: #94a3b8; font-size: 0.9rem; }
-    @media (max-width: 768px) { .dashboard-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) {
+        .stats-row { grid-template-columns: repeat(2, 1fr); }
+        .dashboard-grid { grid-template-columns: 1fr; }
+    }
 </style>
 {% endblock %}
