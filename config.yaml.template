@@ -6,6 +6,7 @@
 # Company / branding
 company_name: "My Company"
 app_title: "Equipment Inventory"
+site_url: ""
 
 # Initial admin account
 admin_username: "admin"

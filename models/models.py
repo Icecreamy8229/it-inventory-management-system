@@ -46,6 +46,7 @@ class SystemConfig(db.Model):
     company_name = db.Column(db.String(200), nullable=False)
     app_title = db.Column(db.String(200), nullable=False)
     logo_path = db.Column(db.String(500), nullable=True)
+    site_url = db.Column(db.String(500), nullable=True)
     setup_complete = db.Column(db.Boolean, nullable=False, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

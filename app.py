@@ -65,9 +65,26 @@ def create_app(config_overrides=None):
         import models  # noqa: F401
         db.create_all()
 
+        # Lightweight migration: add columns that may not exist yet
+        _migrate_add_columns(app)
+
         # Seed from config.yaml on first startup
         from services.seed_service import seed_from_config
         seed_from_config()
 
     return app
+
+
+def _migrate_add_columns(app):
+    """Add any missing columns to existing tables (SQLite doesn't auto-migrate)."""
+    import sqlalchemy
+
+    with db.engine.connect() as conn:
+        inspector = sqlalchemy.inspect(db.engine)
+        columns = [c["name"] for c in inspector.get_columns("system_config")]
+        if "site_url" not in columns:
+            conn.execute(sqlalchemy.text(
+                "ALTER TABLE system_config ADD COLUMN site_url VARCHAR(500)"
+            ))
+            conn.commit()
 

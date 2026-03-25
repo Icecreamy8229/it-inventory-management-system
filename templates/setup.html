@@ -31,6 +31,11 @@
                         <input type="text" class="form-control" id="app_title" name="app_title" value="{{ app_title|default('', true) }}" required>
                     </div>
                     <div class="mb-3">
+                        <label for="site_url" class="form-label">Site URL (optional)</label>
+                        <input type="text" class="form-control" id="site_url" name="site_url" value="{{ site_url|default('', true) }}" placeholder="e.g. inventory.mysite.com">
+                        <div class="form-text">The URL where this app will be accessible. Used for links and branding.</div>
+                    </div>
+                    <div class="mb-3">
                         <label for="logo" class="form-label">Company Logo (optional)</label>
                         <input type="file" class="form-control" id="logo" name="logo" accept="image/*">
                     </div>

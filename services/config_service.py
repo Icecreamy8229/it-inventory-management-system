@@ -24,6 +24,7 @@ class ConfigService:
         company_name: str,
         app_title: str,
         logo_file=None,
+        site_url: str = "",
         categories: list[str] = None,
         admin_username: str = None,
         admin_password: str = None,
@@ -37,6 +38,7 @@ class ConfigService:
             company_name=company_name,
             app_title=app_title,
             logo_path=logo_path,
+            site_url=site_url or "",
             setup_complete=True,
         )
         db.session.add(config)
@@ -61,6 +63,7 @@ class ConfigService:
         company_name: str = None,
         app_title: str = None,
         logo_file=None,
+        site_url: str = None,
     ) -> SystemConfig:
         """Update branding settings."""
         config = SystemConfig.query.first()
@@ -71,6 +74,8 @@ class ConfigService:
             config.company_name = company_name
         if app_title is not None:
             config.app_title = app_title
+        if site_url is not None:
+            config.site_url = site_url
         if logo_file:
             config.logo_path = self._save_logo(logo_file)
 

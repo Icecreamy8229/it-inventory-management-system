@@ -28,6 +28,11 @@
                 <input type="text" class="form-control" id="app_title" name="app_title" value="{{ config.app_title if config else '' }}">
             </div>
             <div class="mb-3">
+                <label for="site_url" class="form-label">Site URL</label>
+                <input type="text" class="form-control" id="site_url" name="site_url" value="{{ config.site_url if config else '' }}" placeholder="e.g. inventory.mysite.com">
+                <div class="form-text">The URL where this app will be accessible. Used for links and branding.</div>
+            </div>
+            <div class="mb-3">
                 <label for="logo" class="form-label">Company Logo</label>
                 <input type="file" class="form-control" id="logo" name="logo" accept="image/*">
                 {% if config and config.logo_path %}

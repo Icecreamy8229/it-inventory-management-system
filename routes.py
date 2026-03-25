@@ -43,6 +43,7 @@ def register_routes(app):
 
         company_name = request.form.get("company_name", "").strip()
         app_title = request.form.get("app_title", "").strip()
+        site_url = request.form.get("site_url", "").strip()
         admin_username = request.form.get("admin_username", "").strip()
         admin_password = request.form.get("admin_password", "")
         admin_password_confirm = request.form.get("admin_password_confirm", "")
@@ -72,6 +73,7 @@ def register_routes(app):
                 errors=errors,
                 company_name=company_name,
                 app_title=app_title,
+                site_url=site_url,
                 admin_username=admin_username,
             )
 
@@ -81,6 +83,7 @@ def register_routes(app):
                 company_name=company_name,
                 app_title=app_title,
                 logo_file=logo_file if logo_file and logo_file.filename else None,
+                site_url=site_url,
                 categories=categories if categories else None,
                 admin_username=admin_username,
                 admin_password=admin_password,
@@ -94,6 +97,7 @@ def register_routes(app):
                 errors=[str(e)],
                 company_name=company_name,
                 app_title=app_title,
+                site_url=site_url,
                 admin_username=admin_username,
             )
 
@@ -499,6 +503,7 @@ def register_routes(app):
     def settings_update():
         company_name = request.form.get("company_name", "").strip()
         app_title = request.form.get("app_title", "").strip()
+        site_url = request.form.get("site_url", "").strip()
         logo_file = request.files.get("logo")
 
         config_service = ConfigService()
@@ -506,6 +511,7 @@ def register_routes(app):
             config_service.update_config(
                 company_name=company_name or None,
                 app_title=app_title or None,
+                site_url=site_url,
                 logo_file=logo_file if logo_file and logo_file.filename else None,
             )
         except ValueError as e:

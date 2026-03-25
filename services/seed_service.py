@@ -26,6 +26,7 @@ def seed_from_config(config_path: str = "config.yaml") -> bool:
     config_service.save_setup(
         company_name=cfg.get("company_name", "My Company"),
         app_title=cfg.get("app_title", "Equipment Inventory"),
+        site_url=cfg.get("site_url", ""),
         categories=cfg.get("categories"),
         admin_username=cfg.get("admin_username"),
         admin_password=cfg.get("admin_password"),
