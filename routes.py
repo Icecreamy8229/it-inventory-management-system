@@ -13,6 +13,21 @@ from flask_login import current_user, login_required, login_user, logout_user
 
 from auth import admin_required
 from exceptions import ConflictError
+from forms import (
+    AddCategoryForm,
+    AssignForm,
+    ChangeRoleForm,
+    ChangeStatusForm,
+    CreateUserForm,
+    DeleteCategoryForm,
+    DeleteEquipmentForm,
+    DeleteUserForm,
+    EquipmentForm,
+    LoginForm,
+    SettingsForm,
+    SetupForm,
+    UnassignForm,
+)
 from services.category_service import CategoryService
 from services.config_service import ConfigService
 from services.equipment_service import EquipmentService
@@ -31,9 +46,10 @@ def register_routes(app):
         config_service = ConfigService()
         if config_service.is_setup_complete():
             return redirect(url_for("dashboard"))
+        form = SetupForm()
         category_service = CategoryService()
         default_categories = category_service.get_default_categories()
-        return render_template("setup.html", default_categories=default_categories)
+        return render_template("setup.html", form=form, default_categories=default_categories)
 
     @app.route("/setup", methods=["POST"])
     def setup_post():
@@ -41,64 +57,43 @@ def register_routes(app):
         if config_service_check.is_setup_complete():
             return redirect(url_for("dashboard"))
 
-        company_name = request.form.get("company_name", "").strip()
-        app_title = request.form.get("app_title", "").strip()
-        site_url = request.form.get("site_url", "").strip()
-        admin_username = request.form.get("admin_username", "").strip()
-        admin_password = request.form.get("admin_password", "")
-        admin_password_confirm = request.form.get("admin_password_confirm", "")
-        logo_file = request.files.get("logo")
-
-        # Collect categories from form
+        form = SetupForm()
         categories = request.form.getlist("categories")
 
-        errors = []
-        if not company_name:
-            errors.append("Company name is required.")
-        if not app_title:
-            errors.append("Application title is required.")
-        if not admin_username:
-            errors.append("Admin username is required.")
-        if not admin_password:
-            errors.append("Admin password is required.")
-        if admin_password != admin_password_confirm:
-            errors.append("Passwords do not match.")
-
-        if errors:
+        if not form.validate_on_submit():
             category_service = CategoryService()
             default_categories = category_service.get_default_categories()
+            errors = []
+            for field, field_errors in form.errors.items():
+                for err in field_errors:
+                    errors.append(err)
             return render_template(
                 "setup.html",
+                form=form,
                 default_categories=default_categories,
                 errors=errors,
-                company_name=company_name,
-                app_title=app_title,
-                site_url=site_url,
-                admin_username=admin_username,
             )
 
+        logo_file = form.logo.data
         config_service = ConfigService()
         try:
             config_service.save_setup(
-                company_name=company_name,
-                app_title=app_title,
+                company_name=form.company_name.data.strip(),
+                app_title=form.app_title.data.strip(),
                 logo_file=logo_file if logo_file and logo_file.filename else None,
-                site_url=site_url,
+                site_url=form.site_url.data.strip() if form.site_url.data else "",
                 categories=categories if categories else None,
-                admin_username=admin_username,
-                admin_password=admin_password,
+                admin_username=form.admin_username.data.strip(),
+                admin_password=form.admin_password.data,
             )
         except ValueError as e:
             category_service = CategoryService()
             default_categories = category_service.get_default_categories()
             return render_template(
                 "setup.html",
+                form=form,
                 default_categories=default_categories,
                 errors=[str(e)],
-                company_name=company_name,
-                app_title=app_title,
-                site_url=site_url,
-                admin_username=admin_username,
             )
 
         flash("Setup complete! Welcome to your equipment inventory.", "success")
@@ -110,20 +105,22 @@ def register_routes(app):
 
     @app.route("/login", methods=["GET"])
     def login():
-        return render_template("login.html")
+        form = LoginForm()
+        return render_template("login.html", form=form)
 
     @app.route("/login", methods=["POST"])
     def login_post():
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
+        form = LoginForm()
+        if not form.validate_on_submit():
+            return render_template("login.html", form=form, error="Invalid input.")
 
         user_service = UserService()
-        user = user_service.authenticate(username, password)
+        user = user_service.authenticate(form.username.data.strip(), form.password.data)
         if user is None:
             return render_template(
                 "login.html",
+                form=form,
                 error="Invalid username or password",
-                username=username,
             )
 
         login_user(user)
@@ -144,10 +141,7 @@ def register_routes(app):
     def dashboard():
         equipment_service = EquipmentService()
         summary = equipment_service.get_dashboard_summary()
-        return render_template(
-            "dashboard.html",
-            summary=summary,
-        )
+        return render_template("dashboard.html", summary=summary)
 
     # -------------------------------------------------------------------------
     # 8.4 - Equipment CRUD routes
@@ -169,7 +163,6 @@ def register_routes(app):
             filter_type=filter_type or None,
         )
 
-        # Build a human-readable label for active filters
         filter_label = ""
         if filter_type:
             if filter_type == "warranty_expiring":
@@ -256,7 +249,6 @@ def register_routes(app):
                 item.notes or "",
             ])
 
-        # Auto-size columns
         for col in ws.columns:
             max_len = max((len(str(cell.value or "")) for cell in col), default=10)
             ws.column_dimensions[col[0].column_letter].width = min(max_len + 2, 40)
@@ -272,33 +264,43 @@ def register_routes(app):
             download_name="equipment_export.xlsx",
         )
 
+    def _build_equipment_form(equipment=None):
+        """Build an EquipmentForm with dynamic category choices."""
+        form = EquipmentForm(obj=equipment)
+        category_service = CategoryService()
+        cats = category_service.list_categories()
+        form.category.choices = [("", "Select a category")] + [(c.name, c.name) for c in cats]
+        return form
+
     @app.route("/equipment/new")
     @login_required
     @admin_required
     def equipment_new():
-        category_service = CategoryService()
-        categories = category_service.list_categories()
-        return render_template("equipment_form.html", categories=categories)
+        form = _build_equipment_form()
+        return render_template("equipment_form.html", form=form)
 
     @app.route("/equipment", methods=["POST"])
     @login_required
     @admin_required
     def equipment_create():
-        data = _parse_equipment_form(request.form)
+        form = _build_equipment_form()
+
+        if not form.validate_on_submit():
+            errors = []
+            for field, field_errors in form.errors.items():
+                for err in field_errors:
+                    errors.append(err)
+            return render_template("equipment_form.html", form=form, errors=errors)
+
+        data = _form_to_equipment_data(form)
+        image_file = form.image.data if form.image.data and hasattr(form.image.data, "filename") and form.image.data.filename else None
 
         equipment_service = EquipmentService()
         try:
-            equipment = equipment_service.create_equipment(data, username=current_user.username)
+            equipment = equipment_service.create_equipment(data, image_file=image_file, username=current_user.username)
         except ValueError as e:
-            category_service = CategoryService()
-            categories = category_service.list_categories()
             errors = e.args[0] if isinstance(e.args[0], list) else [str(e)]
-            return render_template(
-                "equipment_form.html",
-                categories=categories,
-                errors=errors,
-                data=data,
-            )
+            return render_template("equipment_form.html", form=form, errors=errors)
 
         flash("Equipment registered successfully.", "success")
         return redirect(url_for("equipment_detail", equipment_id=equipment.id))
@@ -313,7 +315,21 @@ def register_routes(app):
             flash("Equipment not found.", "error")
             return redirect(url_for("equipment_list"))
 
-        return render_template("equipment_detail.html", equipment=item)
+        assign_form = AssignForm()
+        unassign_form = UnassignForm()
+        status_form = ChangeStatusForm()
+        delete_form = DeleteEquipmentForm()
+        if item.status:
+            status_form.status.data = item.status
+
+        return render_template(
+            "equipment_detail.html",
+            equipment=item,
+            assign_form=assign_form,
+            unassign_form=unassign_form,
+            status_form=status_form,
+            delete_form=delete_form,
+        )
 
     @app.route("/equipment/<int:equipment_id>/edit")
     @login_required
@@ -326,49 +342,51 @@ def register_routes(app):
             flash("Equipment not found.", "error")
             return redirect(url_for("equipment_list"))
 
-        category_service = CategoryService()
-        categories = category_service.list_categories()
-        return render_template(
-            "equipment_form.html",
-            equipment=item,
-            categories=categories,
-        )
+        form = _build_equipment_form(equipment=item)
+        form.expected_updated_at.data = item.updated_at.isoformat()
+        return render_template("equipment_form.html", form=form, equipment=item)
 
     @app.route("/equipment/<int:equipment_id>", methods=["POST"])
     @login_required
     @admin_required
     def equipment_update(equipment_id):
-        data = _parse_equipment_form(request.form)
-        expected_updated_at = _parse_expected_updated_at(request.form)
+        form = _build_equipment_form()
+
+        if not form.validate_on_submit():
+            equipment_service = EquipmentService()
+            try:
+                item = equipment_service.get_equipment(equipment_id)
+            except ValueError:
+                flash("Equipment not found.", "error")
+                return redirect(url_for("equipment_list"))
+            errors = []
+            for field, field_errors in form.errors.items():
+                for err in field_errors:
+                    errors.append(err)
+            return render_template("equipment_form.html", form=form, equipment=item, errors=errors)
+
+        data = _form_to_equipment_data(form)
+        expected_updated_at = _parse_expected_updated_at(form.expected_updated_at.data)
+        image_file = form.image.data if form.image.data and hasattr(form.image.data, "filename") and form.image.data.filename else None
+        remove_image = form.remove_image.data
 
         equipment_service = EquipmentService()
         try:
             equipment = equipment_service.update_equipment(
-                equipment_id, data, expected_updated_at=expected_updated_at, username=current_user.username
+                equipment_id, data, image_file=image_file, remove_image=remove_image,
+                expected_updated_at=expected_updated_at, username=current_user.username,
             )
         except ConflictError as e:
             flash(str(e), "error")
-            return render_template(
-                "error.html",
-                error=str(e),
-                status_code=409,
-            ), 409
+            return render_template("error.html", error=str(e), status_code=409), 409
         except ValueError as e:
-            category_service = CategoryService()
-            categories = category_service.list_categories()
             try:
                 item = equipment_service.get_equipment(equipment_id)
             except ValueError:
                 flash("Equipment not found.", "error")
                 return redirect(url_for("equipment_list"))
             errors = e.args[0] if isinstance(e.args[0], list) else [str(e)]
-            return render_template(
-                "equipment_form.html",
-                equipment=item,
-                categories=categories,
-                errors=errors,
-                data=data,
-            )
+            return render_template("equipment_form.html", form=form, equipment=item, errors=errors)
 
         flash("Equipment updated successfully.", "success")
         return redirect(url_for("equipment_detail", equipment_id=equipment.id))
@@ -377,6 +395,11 @@ def register_routes(app):
     @login_required
     @admin_required
     def equipment_delete(equipment_id):
+        form = DeleteEquipmentForm()
+        if not form.validate_on_submit():
+            flash("Invalid request.", "error")
+            return redirect(url_for("equipment_list"))
+
         equipment_service = EquipmentService()
         try:
             equipment_service.delete_equipment(equipment_id)
@@ -395,25 +418,21 @@ def register_routes(app):
     @login_required
     @admin_required
     def equipment_assign(equipment_id):
-        assignee = request.form.get("assignee", "").strip()
-        expected_updated_at = _parse_expected_updated_at(request.form)
-
-        if not assignee:
+        form = AssignForm()
+        if not form.validate_on_submit():
             flash("Assignee is required.", "error")
             return redirect(url_for("equipment_detail", equipment_id=equipment_id))
 
+        expected_updated_at = _parse_expected_updated_at(form.expected_updated_at.data)
         equipment_service = EquipmentService()
         try:
             equipment_service.assign_equipment(
-                equipment_id, assignee, expected_updated_at=expected_updated_at, username=current_user.username
+                equipment_id, form.assignee.data.strip(),
+                expected_updated_at=expected_updated_at, username=current_user.username,
             )
         except ConflictError as e:
             flash(str(e), "error")
-            return render_template(
-                "error.html",
-                error=str(e),
-                status_code=409,
-            ), 409
+            return render_template("error.html", error=str(e), status_code=409), 409
         except ValueError as e:
             flash(str(e), "error")
             return redirect(url_for("equipment_detail", equipment_id=equipment_id))
@@ -425,20 +444,20 @@ def register_routes(app):
     @login_required
     @admin_required
     def equipment_unassign(equipment_id):
-        expected_updated_at = _parse_expected_updated_at(request.form)
+        form = UnassignForm()
+        if not form.validate_on_submit():
+            flash("Invalid request.", "error")
+            return redirect(url_for("equipment_detail", equipment_id=equipment_id))
 
+        expected_updated_at = _parse_expected_updated_at(form.expected_updated_at.data)
         equipment_service = EquipmentService()
         try:
             equipment_service.unassign_equipment(
-                equipment_id, expected_updated_at=expected_updated_at, username=current_user.username
+                equipment_id, expected_updated_at=expected_updated_at, username=current_user.username,
             )
         except ConflictError as e:
             flash(str(e), "error")
-            return render_template(
-                "error.html",
-                error=str(e),
-                status_code=409,
-            ), 409
+            return render_template("error.html", error=str(e), status_code=409), 409
         except ValueError as e:
             flash(str(e), "error")
             return redirect(url_for("equipment_detail", equipment_id=equipment_id))
@@ -450,30 +469,26 @@ def register_routes(app):
     @login_required
     @admin_required
     def equipment_status(equipment_id):
-        new_status = request.form.get("status", "").strip()
-        expected_updated_at = _parse_expected_updated_at(request.form)
-
-        if not new_status:
+        form = ChangeStatusForm()
+        if not form.validate_on_submit():
             flash("Status is required.", "error")
             return redirect(url_for("equipment_detail", equipment_id=equipment_id))
 
+        expected_updated_at = _parse_expected_updated_at(form.expected_updated_at.data)
         equipment_service = EquipmentService()
         try:
             equipment_service.change_status(
-                equipment_id, new_status, expected_updated_at=expected_updated_at, username=current_user.username
+                equipment_id, form.status.data.strip(),
+                expected_updated_at=expected_updated_at, username=current_user.username,
             )
         except ConflictError as e:
             flash(str(e), "error")
-            return render_template(
-                "error.html",
-                error=str(e),
-                status_code=409,
-            ), 409
+            return render_template("error.html", error=str(e), status_code=409), 409
         except ValueError as e:
             flash(str(e), "error")
             return redirect(url_for("equipment_detail", equipment_id=equipment_id))
 
-        flash(f"Equipment status changed to '{new_status}'.", "success")
+        flash(f"Equipment status changed to '{form.status.data}'.", "success")
         return redirect(url_for("equipment_detail", equipment_id=equipment_id))
 
     # -------------------------------------------------------------------------
@@ -486,13 +501,19 @@ def register_routes(app):
     def settings():
         config_service = ConfigService()
         config = config_service.get_config()
+        settings_form = SettingsForm(obj=config)
+        add_category_form = AddCategoryForm()
         category_service = CategoryService()
         categories = category_service.list_categories()
+        delete_category_form = DeleteCategoryForm()
         user_service = UserService()
         users = user_service.list_users()
         return render_template(
             "settings.html",
             config=config,
+            settings_form=settings_form,
+            add_category_form=add_category_form,
+            delete_category_form=delete_category_form,
             categories=categories,
             users=users,
         )
@@ -501,18 +522,19 @@ def register_routes(app):
     @login_required
     @admin_required
     def settings_update():
-        company_name = request.form.get("company_name", "").strip()
-        app_title = request.form.get("app_title", "").strip()
-        site_url = request.form.get("site_url", "").strip()
-        logo_file = request.files.get("logo")
+        form = SettingsForm()
+        if not form.validate_on_submit():
+            flash("Invalid input.", "error")
+            return redirect(url_for("settings"))
 
+        logo_file = form.logo.data
         config_service = ConfigService()
         try:
             config_service.update_config(
-                company_name=company_name or None,
-                app_title=app_title or None,
-                site_url=site_url,
-                logo_file=logo_file if logo_file and logo_file.filename else None,
+                company_name=form.company_name.data.strip() or None,
+                app_title=form.app_title.data.strip() or None,
+                site_url=form.site_url.data.strip() if form.site_url.data else "",
+                logo_file=logo_file if logo_file and hasattr(logo_file, "filename") and logo_file.filename else None,
             )
         except ValueError as e:
             flash(str(e), "error")
@@ -525,25 +547,30 @@ def register_routes(app):
     @login_required
     @admin_required
     def settings_add_category():
-        name = request.form.get("name", "").strip()
-        if not name:
+        form = AddCategoryForm()
+        if not form.validate_on_submit():
             flash("Category name is required.", "error")
             return redirect(url_for("settings"))
 
         category_service = CategoryService()
         try:
-            category_service.add_category(name)
+            category_service.add_category(form.name.data.strip())
         except ValueError as e:
             flash(str(e), "error")
             return redirect(url_for("settings"))
 
-        flash(f"Category '{name}' added.", "success")
+        flash(f"Category '{form.name.data.strip()}' added.", "success")
         return redirect(url_for("settings"))
 
     @app.route("/settings/categories/<int:category_id>/delete", methods=["POST"])
     @login_required
     @admin_required
     def settings_delete_category(category_id):
+        form = DeleteCategoryForm()
+        if not form.validate_on_submit():
+            flash("Invalid request.", "error")
+            return redirect(url_for("settings"))
+
         category_service = CategoryService()
         try:
             category_service.delete_category(category_id)
@@ -560,39 +587,49 @@ def register_routes(app):
     def settings_users():
         user_service = UserService()
         users = user_service.list_users()
-        return render_template("users.html", users=users)
+        create_user_form = CreateUserForm()
+        delete_user_form = DeleteUserForm()
+        change_role_form = ChangeRoleForm()
+        return render_template(
+            "users.html",
+            users=users,
+            create_user_form=create_user_form,
+            delete_user_form=delete_user_form,
+            change_role_form=change_role_form,
+        )
 
     @app.route("/settings/users", methods=["POST"])
     @login_required
     @admin_required
     def settings_create_user():
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-        password_confirm = request.form.get("password_confirm", "")
-        role = request.form.get("role", "viewer").strip()
-
-        if not username or not password:
-            flash("Username and password are required.", "error")
-            return redirect(url_for("settings_users"))
-
-        if password != password_confirm:
-            flash("Passwords do not match.", "error")
+        form = CreateUserForm()
+        if not form.validate_on_submit():
+            errors = []
+            for field, field_errors in form.errors.items():
+                for err in field_errors:
+                    errors.append(err)
+            flash(" ".join(errors), "error")
             return redirect(url_for("settings_users"))
 
         user_service = UserService()
         try:
-            user_service.create_user(username, password, role=role)
+            user_service.create_user(form.username.data.strip(), form.password.data, role=form.role.data)
         except ValueError as e:
             flash(str(e), "error")
             return redirect(url_for("settings_users"))
 
-        flash(f"User '{username}' created.", "success")
+        flash(f"User '{form.username.data.strip()}' created.", "success")
         return redirect(url_for("settings_users"))
 
     @app.route("/settings/users/<int:user_id>/delete", methods=["POST"])
     @login_required
     @admin_required
     def settings_delete_user(user_id):
+        form = DeleteUserForm()
+        if not form.validate_on_submit():
+            flash("Invalid request.", "error")
+            return redirect(url_for("settings_users"))
+
         user_service = UserService()
         try:
             user_service.delete_user(user_id)
@@ -607,14 +644,14 @@ def register_routes(app):
     @login_required
     @admin_required
     def settings_change_role(user_id):
-        new_role = request.form.get("role", "").strip()
-        if not new_role:
+        form = ChangeRoleForm()
+        if not form.validate_on_submit():
             flash("Role is required.", "error")
             return redirect(url_for("settings_users"))
 
         user_service = UserService()
         try:
-            user_service.change_role(user_id, new_role)
+            user_service.change_role(user_id, form.role.data)
         except ValueError as e:
             flash(str(e), "error")
             return redirect(url_for("settings_users"))
@@ -632,61 +669,38 @@ def register_routes(app):
 # Helper functions
 # ---------------------------------------------------------------------------
 
-def _parse_equipment_form(form) -> dict:
-    """Extract equipment data from a form submission."""
+def _form_to_equipment_data(form) -> dict:
+    """Extract equipment data dict from a validated EquipmentForm."""
     data = {
-        "asset_tag": form.get("asset_tag", "").strip(),
-        "name": form.get("name", "").strip(),
-        "category": form.get("category", "").strip(),
-        "manufacturer": form.get("manufacturer", "").strip(),
-        "model": form.get("model", "").strip(),
-        "serial_number": form.get("serial_number", "").strip(),
+        "asset_tag": form.asset_tag.data.strip(),
+        "name": form.name.data.strip(),
+        "category": form.category.data.strip(),
+        "manufacturer": form.manufacturer.data.strip(),
+        "model": form.model.data.strip(),
+        "serial_number": form.serial_number.data.strip(),
+        "purchase_date": form.purchase_date.data,
+        "purchase_cost": form.purchase_cost.data,
+        "warranty_expiration_date": form.warranty_expiration_date.data,
     }
 
-    # Parse dates
-    purchase_date_str = form.get("purchase_date", "").strip()
-    if purchase_date_str:
-        try:
-            data["purchase_date"] = datetime.strptime(purchase_date_str, "%Y-%m-%d").date()
-        except ValueError:
-            data["purchase_date"] = purchase_date_str
+    if form.location.data and form.location.data.strip():
+        data["location"] = form.location.data.strip()
     else:
-        data["purchase_date"] = None
+        data["location"] = None
 
-    warranty_date_str = form.get("warranty_expiration_date", "").strip()
-    if warranty_date_str:
-        try:
-            data["warranty_expiration_date"] = datetime.strptime(warranty_date_str, "%Y-%m-%d").date()
-        except ValueError:
-            data["warranty_expiration_date"] = warranty_date_str
+    if form.notes.data and form.notes.data.strip():
+        data["notes"] = form.notes.data.strip()
     else:
-        data["warranty_expiration_date"] = None
-
-    # Parse cost
-    cost_str = form.get("purchase_cost", "").strip()
-    if cost_str:
-        try:
-            data["purchase_cost"] = float(cost_str)
-        except ValueError:
-            data["purchase_cost"] = cost_str
-    else:
-        data["purchase_cost"] = ""
-
-    # Optional fields
-    location = form.get("location", "").strip()
-    if location:
-        data["location"] = location
-
-    notes = form.get("notes", "").strip()
-    if notes:
-        data["notes"] = notes
+        data["notes"] = None
 
     return data
 
 
-def _parse_expected_updated_at(form) -> datetime | None:
-    """Parse the expected_updated_at hidden field from a form."""
-    value = form.get("expected_updated_at", "").strip()
+def _parse_expected_updated_at(value) -> datetime | None:
+    """Parse the expected_updated_at hidden field value."""
+    if not value or not isinstance(value, str):
+        return None
+    value = value.strip()
     if not value:
         return None
     try:

@@ -3,10 +3,12 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 login_manager.login_view = "login"
+csrf = CSRFProtect()
 
 
 def create_app(config_overrides=None):
@@ -28,6 +30,7 @@ def create_app(config_overrides=None):
     # Initialize extensions
     db.init_app(app)
     login_manager.init_app(app)
+    csrf.init_app(app)
 
     # Ensure data directories exist (use config values which may have been overridden)
     effective_db_uri = app.config["SQLALCHEMY_DATABASE_URI"]
@@ -81,10 +84,18 @@ def _migrate_add_columns(app):
 
     with db.engine.connect() as conn:
         inspector = sqlalchemy.inspect(db.engine)
-        columns = [c["name"] for c in inspector.get_columns("system_config")]
-        if "site_url" not in columns:
+
+        system_config_columns = [c["name"] for c in inspector.get_columns("system_config")]
+        if "site_url" not in system_config_columns:
             conn.execute(sqlalchemy.text(
                 "ALTER TABLE system_config ADD COLUMN site_url VARCHAR(500)"
+            ))
+            conn.commit()
+
+        equipment_columns = [c["name"] for c in inspector.get_columns("equipment")]
+        if "image_filename" not in equipment_columns:
+            conn.execute(sqlalchemy.text(
+                "ALTER TABLE equipment ADD COLUMN image_filename VARCHAR(300)"
             ))
             conn.commit()
 

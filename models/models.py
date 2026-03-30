@@ -20,6 +20,7 @@ class Equipment(db.Model):
     assignee = db.Column(db.String(200), nullable=True)
     location = db.Column(db.String(300), nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    image_filename = db.Column(db.String(300), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

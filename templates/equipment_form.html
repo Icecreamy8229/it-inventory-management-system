@@ -18,61 +18,69 @@
 <div class="card">
     <div class="card-body">
         {% if equipment %}
-        <form method="post" action="{{ url_for('equipment_update', equipment_id=equipment.id) }}">
-            <input type="hidden" name="expected_updated_at" value="{{ equipment.updated_at.isoformat() }}">
+        <form method="post" action="{{ url_for('equipment_update', equipment_id=equipment.id) }}" enctype="multipart/form-data">
         {% else %}
-        <form method="post" action="{{ url_for('equipment_create') }}">
+        <form method="post" action="{{ url_for('equipment_create') }}" enctype="multipart/form-data">
         {% endif %}
+            {{ form.hidden_tag() }}
 
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label for="asset-tag-input" class="form-label">Asset Tag *</label>
-                    <input type="text" class="form-control" id="asset-tag-input" name="asset_tag" value="{{ data.asset_tag if data else (equipment.asset_tag if equipment else '') }}" required>
+                    <label for="asset_tag" class="form-label">Asset Tag *</label>
+                    {{ form.asset_tag(class="form-control", id="asset_tag", required=true) }}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="name" class="form-label">Name *</label>
-                    <input type="text" class="form-control" id="name" name="name" value="{{ data.name if data else (equipment.name if equipment else '') }}" required>
+                    {{ form.name(class="form-control", id="name", required=true) }}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="category" class="form-label">Category *</label>
-                    <select class="form-select" id="category" name="category" required>
-                        <option value="">Select a category</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat.name }}" {% if (data and data.category == cat.name) or (not data and equipment and equipment.category == cat.name) %}selected{% endif %}>{{ cat.name }}</option>
-                        {% endfor %}
-                    </select>
+                    {{ form.category(class="form-select", id="category", required=true) }}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="manufacturer" class="form-label">Manufacturer *</label>
-                    <input type="text" class="form-control" id="manufacturer" name="manufacturer" value="{{ data.manufacturer if data else (equipment.manufacturer if equipment else '') }}" required>
+                    {{ form.manufacturer(class="form-control", id="manufacturer", required=true) }}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="model" class="form-label">Model *</label>
-                    <input type="text" class="form-control" id="model" name="model" value="{{ data.model if data else (equipment.model if equipment else '') }}" required>
+                    {{ form.model(class="form-control", id="model", required=true) }}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="serial_number" class="form-label">Serial Number *</label>
-                    <input type="text" class="form-control" id="serial_number" name="serial_number" value="{{ data.serial_number if data else (equipment.serial_number if equipment else '') }}" required>
+                    {{ form.serial_number(class="form-control", id="serial_number", required=true) }}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="purchase_date" class="form-label">Purchase Date</label>
-                    <input type="date" class="form-control" id="purchase_date" name="purchase_date" value="{{ data.purchase_date if data else (equipment.purchase_date if equipment else '') }}">
+                    {{ form.purchase_date(class="form-control", id="purchase_date") }}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="purchase_cost" class="form-label">Purchase Cost *</label>
-                    <input type="number" class="form-control" id="purchase_cost" name="purchase_cost" step="0.01" min="0" value="{{ data.purchase_cost if data else (equipment.purchase_cost if equipment else '') }}" required>
+                    {{ form.purchase_cost(class="form-control", id="purchase_cost", step="0.01", min="0", required=true) }}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="warranty_expiration_date" class="form-label">Warranty Expiration Date</label>
-                    <input type="date" class="form-control" id="warranty_expiration_date" name="warranty_expiration_date" value="{{ data.warranty_expiration_date if data else (equipment.warranty_expiration_date if equipment else '') }}">
+                    {{ form.warranty_expiration_date(class="form-control", id="warranty_expiration_date") }}
                 </div>
                 <div class="col-md-6 mb-3">
                     <label for="location" class="form-label">Location</label>
-                    <input type="text" class="form-control" id="location" name="location" value="{{ data.location if data else (equipment.location if equipment else '') }}">
+                    {{ form.location(class="form-control", id="location") }}
                 </div>
                 <div class="col-12 mb-3">
                     <label for="notes" class="form-label">Notes</label>
-                    <textarea class="form-control" id="notes" name="notes" rows="3">{{ data.notes if data else (equipment.notes if equipment else '') }}</textarea>
+                    {{ form.notes(class="form-control", id="notes", rows="3") }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="image" class="form-label">Equipment Image</label>
+                    {{ form.image(class="form-control", id="image", accept="image/png,image/jpeg,image/gif,image/webp") }}
+                    <div class="form-text">PNG, JPG, GIF, or WebP. Max 5 MB.</div>
+                    {% if equipment and equipment.image_filename %}
+                    <div class="mt-2 d-flex align-items-center gap-2">
+                        <img src="{{ url_for('uploaded_file', filename=equipment.image_filename) }}" alt="Current image for {{ equipment.name }}" class="rounded" style="max-height:80px;">
+                        <label class="form-check-label">
+                            {{ form.remove_image(class="form-check-input") }} Remove current image
+                        </label>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 

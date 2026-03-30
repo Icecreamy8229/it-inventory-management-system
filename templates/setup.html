@@ -21,23 +21,24 @@
                 {% endif %}
 
                 <form method="POST" action="{{ url_for('setup_post') }}" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
                     <h2 class="h6 border-bottom pb-2 mb-3">Company Branding</h2>
                     <div class="mb-3">
                         <label for="company_name" class="form-label">Company Name</label>
-                        <input type="text" class="form-control" id="company_name" name="company_name" value="{{ company_name|default('', true) }}" required>
+                        {{ form.company_name(class="form-control", id="company_name", required=true) }}
                     </div>
                     <div class="mb-3">
                         <label for="app_title" class="form-label">Application Title</label>
-                        <input type="text" class="form-control" id="app_title" name="app_title" value="{{ app_title|default('', true) }}" required>
+                        {{ form.app_title(class="form-control", id="app_title", required=true) }}
                     </div>
                     <div class="mb-3">
                         <label for="site_url" class="form-label">Site URL (optional)</label>
-                        <input type="text" class="form-control" id="site_url" name="site_url" value="{{ site_url|default('', true) }}" placeholder="e.g. inventory.mysite.com">
+                        {{ form.site_url(class="form-control", id="site_url", placeholder="e.g. inventory.mysite.com") }}
                         <div class="form-text">The URL where this app will be accessible. Used for links and branding.</div>
                     </div>
                     <div class="mb-3">
                         <label for="logo" class="form-label">Company Logo (optional)</label>
-                        <input type="file" class="form-control" id="logo" name="logo" accept="image/*">
+                        {{ form.logo(class="form-control", id="logo", accept="image/*") }}
                     </div>
 
                     <h2 class="h6 border-bottom pb-2 mb-3">Equipment Categories</h2>
@@ -59,15 +60,15 @@
                     <h2 class="h6 border-bottom pb-2 mb-3">Admin Account</h2>
                     <div class="mb-3">
                         <label for="admin_username" class="form-label">Username</label>
-                        <input type="text" class="form-control" id="admin_username" name="admin_username" value="{{ admin_username|default('', true) }}" required>
+                        {{ form.admin_username(class="form-control", id="admin_username", required=true) }}
                     </div>
                     <div class="mb-3">
                         <label for="admin_password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="admin_password" name="admin_password" required>
+                        {{ form.admin_password(class="form-control", id="admin_password", required=true) }}
                     </div>
                     <div class="mb-3">
                         <label for="admin_password_confirm" class="form-label">Confirm Password</label>
-                        <input type="password" class="form-control" id="admin_password_confirm" name="admin_password_confirm" required>
+                        {{ form.admin_password_confirm(class="form-control", id="admin_password_confirm", required=true) }}
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 mt-2">Complete Setup</button>

@@ -5,36 +5,27 @@
 {% block content %}
 <h1 class="h3 mb-4">Settings</h1>
 
-{% if errors is defined and errors %}
-<div class="alert alert-danger">
-    <ul class="mb-0">
-        {% for error in errors %}
-        <li>{{ error }}</li>
-        {% endfor %}
-    </ul>
-</div>
-{% endif %}
-
 <div class="card mb-3">
     <div class="card-body">
         <h2 class="h5 mb-3">Branding</h2>
         <form method="POST" action="{{ url_for('settings_update') }}" enctype="multipart/form-data">
+            {{ settings_form.hidden_tag() }}
             <div class="mb-3">
                 <label for="company_name" class="form-label">Company Name</label>
-                <input type="text" class="form-control" id="company_name" name="company_name" value="{{ config.company_name if config else '' }}">
+                {{ settings_form.company_name(class="form-control", id="company_name") }}
             </div>
             <div class="mb-3">
                 <label for="app_title" class="form-label">Application Title</label>
-                <input type="text" class="form-control" id="app_title" name="app_title" value="{{ config.app_title if config else '' }}">
+                {{ settings_form.app_title(class="form-control", id="app_title") }}
             </div>
             <div class="mb-3">
                 <label for="site_url" class="form-label">Site URL</label>
-                <input type="text" class="form-control" id="site_url" name="site_url" value="{{ config.site_url if config else '' }}" placeholder="e.g. inventory.mysite.com">
+                {{ settings_form.site_url(class="form-control", id="site_url", placeholder="e.g. inventory.mysite.com") }}
                 <div class="form-text">The URL where this app will be accessible. Used for links and branding.</div>
             </div>
             <div class="mb-3">
                 <label for="logo" class="form-label">Company Logo</label>
-                <input type="file" class="form-control" id="logo" name="logo" accept="image/*">
+                {{ settings_form.logo(class="form-control", id="logo", accept="image/*") }}
                 {% if config and config.logo_path %}
                 <div class="form-text">Current logo: {{ config.logo_path }}</div>
                 {% endif %}
@@ -62,6 +53,7 @@
                         <td>{{ cat.name }}</td>
                         <td>
                             <form method="POST" action="{{ url_for('settings_delete_category', category_id=cat.id) }}" class="d-inline" onsubmit="return confirm('Delete category {{ cat.name }}?');">
+                                {{ delete_category_form.hidden_tag() }}
                                 <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                             </form>
                         </td>
@@ -76,9 +68,10 @@
 
         <h3 class="h6 mt-3">Add Category</h3>
         <form method="POST" action="{{ url_for('settings_add_category') }}" class="d-flex gap-2 align-items-end">
+            {{ add_category_form.hidden_tag() }}
             <div class="flex-grow-1">
                 <label for="category_name" class="form-label">Category Name</label>
-                <input type="text" class="form-control" id="category_name" name="name" required>
+                {{ add_category_form.name(class="form-control", id="category_name", required=true) }}
             </div>
             <button type="submit" class="btn btn-primary">Add</button>
         </form>

@@ -1,20 +1,35 @@
+import os
+import uuid
 from datetime import datetime
+
+from flask import current_app
+from werkzeug.utils import secure_filename
 
 from app import db
 from models import Equipment, EquipmentHistory
 from services.validation import validate_equipment_data
 from exceptions import ConflictError
 
+ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
+
 
 class EquipmentService:
 
     VALID_STATUSES = {"Available", "Assigned", "Under Repair", "Retired"}
 
-    def create_equipment(self, data: dict, username: str = None) -> Equipment:
+    def create_equipment(self, data: dict, image_file=None, username: str = None) -> Equipment:
         """Validate and create a new equipment record with user-provided asset tag."""
         errors = validate_equipment_data(data)
+        if image_file:
+            errors = errors or []
+            errors.extend(self._validate_image(image_file))
         if errors:
             raise ValueError(errors)
+
+        image_filename = None
+        if image_file and image_file.filename:
+            image_filename = self._save_image(image_file)
 
         equipment = Equipment(
             asset_tag=data["asset_tag"],
@@ -29,6 +44,7 @@ class EquipmentService:
             status="Available",
             location=data.get("location"),
             notes=data.get("notes"),
+            image_filename=image_filename,
         )
         db.session.add(equipment)
         db.session.flush()
@@ -43,7 +59,7 @@ class EquipmentService:
         db.session.commit()
         return equipment
 
-    def update_equipment(self, equipment_id: int, data: dict, expected_updated_at: datetime = None, username: str = None) -> Equipment:
+    def update_equipment(self, equipment_id: int, data: dict, image_file=None, remove_image: bool = False, expected_updated_at: datetime = None, username: str = None) -> Equipment:
         """Validate and update an equipment record, recording history."""
         equipment = db.session.get(Equipment, equipment_id)
         if equipment is None:
@@ -53,6 +69,9 @@ class EquipmentService:
             raise ConflictError("This record was modified by another user. Please refresh and try again.")
 
         errors = validate_equipment_data(data, is_update=True, equipment_id=equipment_id)
+        if image_file:
+            errors = errors or []
+            errors.extend(self._validate_image(image_file))
         if errors:
             raise ValueError(errors)
 
@@ -76,6 +95,23 @@ class EquipmentService:
         for field in updatable_fields:
             if field in data:
                 setattr(equipment, field, data[field])
+
+        # Handle image upload / removal
+        if remove_image and equipment.image_filename:
+            self._delete_image(equipment.image_filename)
+            changed_fields.append("image")
+            old_values["image"] = equipment.image_filename
+            new_values["image"] = None
+            equipment.image_filename = None
+        elif image_file and image_file.filename:
+            old_image = equipment.image_filename
+            new_filename = self._save_image(image_file)
+            if old_image:
+                self._delete_image(old_image)
+            equipment.image_filename = new_filename
+            changed_fields.append("image")
+            old_values["image"] = old_image
+            new_values["image"] = new_filename
 
         if changed_fields:
             description = "Updated fields: " + ", ".join(changed_fields)
@@ -302,5 +338,41 @@ class EquipmentService:
         equipment = db.session.get(Equipment, equipment_id)
         if equipment is None:
             raise ValueError("Equipment not found")
+        if equipment.image_filename:
+            self._delete_image(equipment.image_filename)
         db.session.delete(equipment)
         db.session.commit()
+
+    # ----- Image helpers -----
+
+    @staticmethod
+    def _validate_image(image_file) -> list[str]:
+        """Return a list of validation errors for the uploaded image."""
+        errors = []
+        if image_file and image_file.filename:
+            ext = image_file.filename.rsplit(".", 1)[-1].lower() if "." in image_file.filename else ""
+            if ext not in ALLOWED_IMAGE_EXTENSIONS:
+                errors.append(f"Image must be one of: {', '.join(sorted(ALLOWED_IMAGE_EXTENSIONS))}")
+            image_file.seek(0, 2)
+            size = image_file.tell()
+            image_file.seek(0)
+            if size > MAX_IMAGE_SIZE:
+                errors.append("Image must be smaller than 5 MB")
+        return errors
+
+    @staticmethod
+    def _save_image(image_file) -> str:
+        """Save an image file and return the stored filename."""
+        upload_path = current_app.config["UPLOAD_PATH"]
+        ext = image_file.filename.rsplit(".", 1)[-1].lower()
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        image_file.save(os.path.join(upload_path, filename))
+        return filename
+
+    @staticmethod
+    def _delete_image(filename: str) -> None:
+        """Delete an image file from the upload directory."""
+        upload_path = current_app.config["UPLOAD_PATH"]
+        filepath = os.path.join(upload_path, filename)
+        if os.path.exists(filepath):
+            os.remove(filepath)
