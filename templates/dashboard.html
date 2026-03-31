@@ -51,7 +51,7 @@
                 <div class="row g-2">
                     {% for status, count in summary.by_status.items() %}
                     <div class="col-6">
-                        <a href="{{ url_for('equipment_list', filter='status:' + status) }}" class="d-flex justify-content-between align-items-center p-2 bg-light rounded text-decoration-none text-dark">
+                        <a href="{{ url_for('equipment_list', filter='status:' + status) }}" class="d-flex justify-content-between align-items-center p-2 bg-light rounded text-decoration-none">
                             <span class="small">{{ status }}</span>
                             <span class="fw-bold">{{ count }}</span>
                         </a>
@@ -74,7 +74,7 @@
                 <div class="row g-2">
                     {% for category, count in summary.by_category.items() %}
                     <div class="col-6">
-                        <a href="{{ url_for('equipment_list', filter='category:' + category) }}" class="d-flex justify-content-between align-items-center p-2 bg-light rounded text-decoration-none text-dark">
+                        <a href="{{ url_for('equipment_list', filter='category:' + category) }}" class="d-flex justify-content-between align-items-center p-2 bg-light rounded text-decoration-none">
                             <span class="small">{{ category }}</span>
                             <span class="fw-bold">{{ count }}</span>
                         </a>
@@ -97,7 +97,7 @@
                 <div class="row g-2">
                     {% for category, value in summary.value_by_category.items() %}
                     <div class="col-6">
-                        <a href="{{ url_for('equipment_list', filter='category:' + category) }}" class="d-flex justify-content-between align-items-center p-2 bg-light rounded text-decoration-none text-dark">
+                        <a href="{{ url_for('equipment_list', filter='category:' + category) }}" class="d-flex justify-content-between align-items-center p-2 bg-light rounded text-decoration-none">
                             <span class="small">{{ category }}</span>
                             <span class="fw-bold">${{ "{:,.2f}".format(value) }}</span>
                         </a>
@@ -120,7 +120,7 @@
                 <div class="row g-2">
                     {% for category, years in summary.avg_age_by_category.items() %}
                     <div class="col-6">
-                        <a href="{{ url_for('equipment_list', filter='category:' + category) }}" class="d-flex justify-content-between align-items-center p-2 bg-light rounded text-decoration-none text-dark">
+                        <a href="{{ url_for('equipment_list', filter='category:' + category) }}" class="d-flex justify-content-between align-items-center p-2 bg-light rounded text-decoration-none">
                             <span class="small">{{ category }}</span>
                             <span class="fw-bold {{ 'text-warning' if years >= 4 }}">{{ years }} yr{{ 's' if years != 1 }}</span>
                         </a>

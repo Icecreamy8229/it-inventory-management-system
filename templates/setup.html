@@ -2,102 +2,91 @@
 
 {% block title %}Setup Wizard{% endblock %}
 
-{% block content %}
-<div class="row justify-content-center mt-3">
-    <div class="col-md-8 col-lg-6">
-        <div class="card">
-            <div class="card-body p-4">
-                <h1 class="h4 mb-1">Welcome — Let's set up your inventory</h1>
-                <p class="text-muted mb-4">Configure your company branding, equipment categories, and admin account to get started.</p>
+{% block body_content %}
+<div class="setup-wrapper">
+    <div class="setup-card">
+        <h1 class="h4 mb-1" style="color: var(--text-primary);">Welcome — Let's set up your inventory</h1>
+        <p class="text-muted mb-4">Configure your company branding, equipment categories, and admin account to get started.</p>
 
-                {% if errors %}
-                <div class="alert alert-danger">
-                    <ul class="mb-0">
-                        {% for error in errors %}
-                        <li>{{ error }}</li>
-                        {% endfor %}
-                    </ul>
-                </div>
-                {% endif %}
-
-                <form method="POST" action="{{ url_for('setup_post') }}" enctype="multipart/form-data">
-                    {{ form.hidden_tag() }}
-                    <h2 class="h6 border-bottom pb-2 mb-3">Company Branding</h2>
-                    <div class="mb-3">
-                        <label for="company_name" class="form-label">Company Name</label>
-                        {{ form.company_name(class="form-control", id="company_name", required=true) }}
-                    </div>
-                    <div class="mb-3">
-                        <label for="app_title" class="form-label">Application Title</label>
-                        {{ form.app_title(class="form-control", id="app_title", required=true) }}
-                    </div>
-                    <div class="mb-3">
-                        <label for="site_url" class="form-label">Site URL (optional)</label>
-                        {{ form.site_url(class="form-control", id="site_url", placeholder="e.g. inventory.mysite.com") }}
-                        <div class="form-text">The URL where this app will be accessible. Used for links and branding.</div>
-                    </div>
-                    <div class="mb-3">
-                        <label for="logo" class="form-label">Company Logo (optional)</label>
-                        {{ form.logo(class="form-control", id="logo", accept="image/*") }}
-                    </div>
-
-                    <h2 class="h6 border-bottom pb-2 mb-3">Equipment Categories</h2>
-                    <p class="text-muted small mb-2">Add or remove categories for organizing your equipment.</p>
-                    <div id="category-list" class="mb-2">
-                        {% for cat in default_categories %}
-                        <div class="d-flex justify-content-between align-items-center p-2 bg-light border rounded mb-1 category-item">
-                            <input type="hidden" name="categories" value="{{ cat }}">
-                            <span>{{ cat }}</span>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="removeCategory(this)">Remove</button>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    <div class="input-group mb-3">
-                        <input type="text" class="form-control" id="new-category" placeholder="New category name">
-                        <button type="button" class="btn btn-outline-secondary" onclick="addCategory()">Add</button>
-                    </div>
-
-                    <h2 class="h6 border-bottom pb-2 mb-3">Admin Account</h2>
-                    <div class="mb-3">
-                        <label for="admin_username" class="form-label">Username</label>
-                        {{ form.admin_username(class="form-control", id="admin_username", required=true) }}
-                    </div>
-                    <div class="mb-3">
-                        <label for="admin_password" class="form-label">Password</label>
-                        {{ form.admin_password(class="form-control", id="admin_password", required=true) }}
-                    </div>
-                    <div class="mb-3">
-                        <label for="admin_password_confirm" class="form-label">Confirm Password</label>
-                        {{ form.admin_password_confirm(class="form-control", id="admin_password_confirm", required=true) }}
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 mt-2">Complete Setup</button>
-                </form>
-            </div>
+        {% if errors %}
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                {% for error in errors %}
+                <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
         </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('setup_post') }}" enctype="multipart/form-data">
+            {{ form.hidden_tag() }}
+            <h2 class="h6 border-bottom pb-2 mb-3" style="color: var(--text-secondary);">Company Branding</h2>
+            <div class="mb-3">
+                <label for="company_name" class="form-label">Company Name</label>
+                {{ form.company_name(class="form-control", id="company_name", required=true) }}
+            </div>
+            <div class="mb-3">
+                <label for="app_title" class="form-label">Application Title</label>
+                {{ form.app_title(class="form-control", id="app_title", required=true) }}
+            </div>
+            <div class="mb-3">
+                <label for="site_url" class="form-label">Site URL (optional)</label>
+                {{ form.site_url(class="form-control", id="site_url", placeholder="e.g. inventory.mysite.com") }}
+                <div class="form-text">The URL where this app will be accessible.</div>
+            </div>
+            <div class="mb-3">
+                <label for="logo" class="form-label">Company Logo (optional)</label>
+                {{ form.logo(class="form-control", id="logo", accept="image/*") }}
+            </div>
+
+            <h2 class="h6 border-bottom pb-2 mb-3" style="color: var(--text-secondary);">Equipment Categories</h2>
+            <p class="text-muted small mb-2">Add or remove categories for organizing your equipment.</p>
+            <div id="category-list" class="mb-2">
+                {% for cat in default_categories %}
+                <div class="d-flex justify-content-between align-items-center p-2 bg-light border rounded mb-1 category-item">
+                    <input type="hidden" name="categories" value="{{ cat }}">
+                    <span>{{ cat }}</span>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="removeCategory(this)">Remove</button>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" id="new-category" placeholder="New category name">
+                <button type="button" class="btn btn-outline-secondary" onclick="addCategory()">Add</button>
+            </div>
+
+            <h2 class="h6 border-bottom pb-2 mb-3" style="color: var(--text-secondary);">Admin Account</h2>
+            <div class="mb-3">
+                <label for="admin_username" class="form-label">Username</label>
+                {{ form.admin_username(class="form-control", id="admin_username", required=true) }}
+            </div>
+            <div class="mb-3">
+                <label for="admin_password" class="form-label">Password</label>
+                {{ form.admin_password(class="form-control", id="admin_password", required=true) }}
+            </div>
+            <div class="mb-3">
+                <label for="admin_password_confirm" class="form-label">Confirm Password</label>
+                {{ form.admin_password_confirm(class="form-control", id="admin_password_confirm", required=true) }}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mt-2">Complete Setup</button>
+        </form>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-function removeCategory(btn) {
-    btn.closest('.category-item').remove();
-}
+function removeCategory(btn) { btn.closest('.category-item').remove(); }
 
 function addCategory() {
     var input = document.getElementById('new-category');
     var name = input.value.trim();
     if (!name) return;
-
     var existing = document.querySelectorAll('#category-list input[name="categories"]');
     for (var i = 0; i < existing.length; i++) {
-        if (existing[i].value.toLowerCase() === name.toLowerCase()) {
-            input.value = '';
-            return;
-        }
+        if (existing[i].value.toLowerCase() === name.toLowerCase()) { input.value = ''; return; }
     }
-
     var div = document.createElement('div');
     div.className = 'd-flex justify-content-between align-items-center p-2 bg-light border rounded mb-1 category-item';
     div.innerHTML = '<input type="hidden" name="categories" value="' + name.replace(/"/g, '&quot;') + '">' +
@@ -108,10 +97,7 @@ function addCategory() {
 }
 
 document.getElementById('new-category').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-        e.preventDefault();
-        addCategory();
-    }
+    if (e.key === 'Enter') { e.preventDefault(); addCategory(); }
 });
 </script>
 {% endblock %}

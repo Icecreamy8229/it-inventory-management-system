@@ -2,141 +2,11 @@
 
 {% block title %}Login{% endblock %}
 
-{% block extra_css %}
-<style>
-  /* Override base bg for login page */
-  body.login-page {
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
-    min-height: 100vh;
-    overflow: hidden;
-  }
-
-  /* Animated circuit canvas behind everything */
-  #circuit-canvas {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 0;
-    pointer-events: none;
-  }
-
-  .login-wrapper {
-    position: relative;
-    z-index: 1;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .login-card {
-    background: rgba(30, 41, 59, 0.85);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(99, 102, 241, 0.25);
-    border-radius: 16px;
-    box-shadow: 0 0 40px rgba(99, 102, 241, 0.1), 0 8px 32px rgba(0,0,0,0.4);
-    max-width: 400px;
-    width: 100%;
-    padding: 2.5rem 2rem;
-    animation: cardFadeIn 0.6s ease-out;
-  }
-
-  @keyframes cardFadeIn {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  .login-icon {
-    width: 56px; height: 56px;
-    background: linear-gradient(135deg, #6366f1, #818cf8);
-    border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 1.25rem;
-    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.35);
-  }
-
-  .login-icon svg {
-    width: 28px; height: 28px;
-    color: #fff;
-  }
-
-  .login-card h1 {
-    color: #f1f5f9;
-    font-size: 1.35rem;
-    font-weight: 600;
-    text-align: center;
-    margin-bottom: 0.25rem;
-  }
-
-  .login-card .subtitle {
-    color: #94a3b8;
-    font-size: 0.82rem;
-    text-align: center;
-    margin-bottom: 1.75rem;
-  }
-
-  .login-card .form-label {
-    color: #cbd5e1;
-    font-size: 0.82rem;
-    font-weight: 500;
-  }
-
-  .login-card .form-control {
-    background: rgba(15, 23, 42, 0.6);
-    border: 1px solid rgba(99, 102, 241, 0.2);
-    color: #f1f5f9;
-    border-radius: 10px;
-    padding: 0.6rem 0.85rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-  }
-
-  .login-card .form-control:focus {
-    background: rgba(15, 23, 42, 0.8);
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-    color: #f1f5f9;
-  }
-
-  .login-card .form-control::placeholder {
-    color: #64748b;
-  }
-
-  .login-card .btn-login {
-    background: linear-gradient(135deg, #6366f1, #818cf8);
-    border: none;
-    border-radius: 10px;
-    padding: 0.65rem;
-    font-weight: 600;
-    font-size: 0.95rem;
-    color: #fff;
-    transition: transform 0.15s, box-shadow 0.15s;
-  }
-
-  .login-card .btn-login:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 24px rgba(99, 102, 241, 0.4);
-  }
-
-  .login-card .btn-login:active {
-    transform: translateY(0);
-  }
-
-  .login-card .alert-danger {
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #fca5a5;
-    border-radius: 10px;
-    font-size: 0.85rem;
-  }
-</style>
-{% endblock %}
-
 {% block body_content %}
 <canvas id="circuit-canvas" aria-hidden="true"></canvas>
 
 <div class="login-wrapper">
   <div class="login-card">
-    <!-- Server / monitor icon -->
     <div class="login-icon" aria-hidden="true">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round"
@@ -185,119 +55,69 @@
 
 {% block extra_js %}
 <script>
-  // Add login-page class to body for scoped styles
   document.body.classList.add('login-page');
 
   (function () {
     var canvas = document.getElementById('circuit-canvas');
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
+    var nodes = [], edges = [], packets = [];
+    var NODE_COUNT = 40, MAX_DIST = 180, PACKET_SPEED = 0.6;
+    var aR = 99, aG = 102, aB = 241;
 
-    var nodes = [];
-    var edges = [];
-    var packets = [];
-    var NODE_COUNT = 40;
-    var MAX_DIST = 180;
-    var PACKET_SPEED = 0.6;
-    var accentR = 99, accentG = 102, accentB = 241; // indigo-500
-
-    function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
+    function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resize);
     resize();
 
-    // Create random nodes
     for (var i = 0; i < NODE_COUNT; i++) {
-      nodes.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        r: Math.random() * 2 + 1.5
-      });
+      nodes.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+        vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, r: Math.random() * 2 + 1.5 });
     }
 
     function spawnPacket() {
-      if (edges.length === 0) return;
+      if (!edges.length) return;
       var e = edges[Math.floor(Math.random() * edges.length)];
       packets.push({ from: e[0], to: e[1], t: 0 });
     }
 
     function tick() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Move nodes gently
       for (var i = 0; i < nodes.length; i++) {
-        var n = nodes[i];
-        n.x += n.vx;
-        n.y += n.vy;
+        var n = nodes[i]; n.x += n.vx; n.y += n.vy;
         if (n.x < 0 || n.x > canvas.width) n.vx *= -1;
         if (n.y < 0 || n.y > canvas.height) n.vy *= -1;
       }
-
-      // Build edges
       edges = [];
       for (var i = 0; i < nodes.length; i++) {
         for (var j = i + 1; j < nodes.length; j++) {
-          var dx = nodes[i].x - nodes[j].x;
-          var dy = nodes[i].y - nodes[j].y;
+          var dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
           var dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < MAX_DIST) {
-            edges.push([i, j, dist]);
-          }
+          if (dist < MAX_DIST) edges.push([i, j, dist]);
         }
       }
-
-      // Draw edges
       for (var k = 0; k < edges.length; k++) {
-        var a = nodes[edges[k][0]];
-        var b = nodes[edges[k][1]];
-        var alpha = 1 - edges[k][2] / MAX_DIST;
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = 'rgba(' + accentR + ',' + accentG + ',' + accentB + ',' + (alpha * 0.15) + ')';
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
+        var a = nodes[edges[k][0]], b = nodes[edges[k][1]], alpha = 1 - edges[k][2] / MAX_DIST;
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = 'rgba(' + aR + ',' + aG + ',' + aB + ',' + (alpha * 0.15) + ')';
+        ctx.lineWidth = 0.8; ctx.stroke();
       }
-
-      // Draw nodes
       for (var i = 0; i < nodes.length; i++) {
-        var n = nodes[i];
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(' + accentR + ',' + accentG + ',' + accentB + ',0.4)';
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(nodes[i].x, nodes[i].y, nodes[i].r, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(' + aR + ',' + aG + ',' + aB + ',0.4)'; ctx.fill();
       }
-
-      // Animate packets (data traveling along edges)
       for (var p = packets.length - 1; p >= 0; p--) {
-        var pkt = packets[p];
-        pkt.t += PACKET_SPEED / 100;
+        var pkt = packets[p]; pkt.t += PACKET_SPEED / 100;
         if (pkt.t >= 1) { packets.splice(p, 1); continue; }
-        var a = nodes[pkt.from];
-        var b = nodes[pkt.to];
-        var px = a.x + (b.x - a.x) * pkt.t;
-        var py = a.y + (b.y - a.y) * pkt.t;
-        ctx.beginPath();
-        ctx.arc(px, py, 2.2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(129,140,248,0.85)';
-        ctx.fill();
-        // Glow
-        ctx.beginPath();
-        ctx.arc(px, py, 6, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(129,140,248,0.15)';
-        ctx.fill();
+        var a = nodes[pkt.from], b = nodes[pkt.to];
+        var px = a.x + (b.x - a.x) * pkt.t, py = a.y + (b.y - a.y) * pkt.t;
+        ctx.beginPath(); ctx.arc(px, py, 2.2, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(129,140,248,0.85)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(px, py, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(129,140,248,0.15)'; ctx.fill();
       }
-
-      // Spawn new packets periodically
       if (Math.random() < 0.06) spawnPacket();
-
       requestAnimationFrame(tick);
     }
-
     tick();
   })();
 </script>
