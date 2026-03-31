@@ -37,6 +37,7 @@
     </nav>
     {% endif %}
 
+    {% block body_content %}
     <div class="container py-4">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -51,6 +52,7 @@
 
         {% block content %}{% endblock %}
     </div>
+    {% endblock %}
 
     {% block extra_js %}{% endblock %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
