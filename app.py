@@ -99,3 +99,64 @@ def _migrate_add_columns(app):
             ))
             conn.commit()
 
+        # Migration: relax NOT NULL constraints on optional equipment fields.
+        # SQLite cannot ALTER COLUMN, so we rebuild the table if needed.
+        _migrate_equipment_nullable(conn, inspector)
+
+
+def _migrate_equipment_nullable(conn, inspector):
+    """Rebuild the equipment table so that category, manufacturer, model,
+    serial_number, and purchase_cost columns allow NULL values."""
+    import sqlalchemy
+
+    columns_info = {c["name"]: c for c in inspector.get_columns("equipment")}
+
+    # Fields that should now be nullable (were previously NOT NULL)
+    should_be_nullable = ["category", "manufacturer", "model", "serial_number", "purchase_cost"]
+
+    needs_migration = any(
+        col in columns_info and columns_info[col].get("nullable") is False
+        for col in should_be_nullable
+    )
+
+    if not needs_migration:
+        return
+
+    conn.execute(sqlalchemy.text("PRAGMA foreign_keys = OFF"))
+    conn.execute(sqlalchemy.text("""
+        CREATE TABLE equipment_new (
+            id INTEGER PRIMARY KEY,
+            asset_tag VARCHAR(100) NOT NULL UNIQUE,
+            name VARCHAR(200) NOT NULL,
+            category VARCHAR(50),
+            manufacturer VARCHAR(100),
+            model VARCHAR(100),
+            serial_number VARCHAR(100) UNIQUE,
+            purchase_date DATE,
+            purchase_cost FLOAT,
+            warranty_expiration_date DATE,
+            status VARCHAR(20) NOT NULL DEFAULT 'Available',
+            assignee VARCHAR(200),
+            location VARCHAR(300),
+            notes TEXT,
+            image_filename VARCHAR(300),
+            created_at DATETIME,
+            updated_at DATETIME
+        )
+    """))
+
+    # Copy all existing data
+    conn.execute(sqlalchemy.text("""
+        INSERT INTO equipment_new
+        SELECT id, asset_tag, name, category, manufacturer, model,
+               serial_number, purchase_date, purchase_cost,
+               warranty_expiration_date, status, assignee, location,
+               notes, image_filename, created_at, updated_at
+        FROM equipment
+    """))
+
+    conn.execute(sqlalchemy.text("DROP TABLE equipment"))
+    conn.execute(sqlalchemy.text("ALTER TABLE equipment_new RENAME TO equipment"))
+    conn.execute(sqlalchemy.text("PRAGMA foreign_keys = ON"))
+    conn.commit()
+

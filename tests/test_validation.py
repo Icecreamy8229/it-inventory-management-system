@@ -54,9 +54,8 @@ class TestRequiredFields:
 
     def test_missing_single_required_field(self, app, setup_category):
         required = [
-            "asset_tag", "name", "category", "manufacturer", "model",
-            "serial_number", "purchase_date", "purchase_cost",
-            "warranty_expiration_date",
+            "asset_tag",
+            "name",
         ]
         for field in required:
             with app.app_context():
@@ -68,14 +67,14 @@ class TestRequiredFields:
     def test_empty_string_field_is_required(self, app, setup_category):
         with app.app_context():
             data = _valid_data()
-            data["name"] = "   "
+            data["asset_tag"] = "   "
             errors = validate_equipment_data(data)
-            assert "name is required" in errors
+            assert "asset_tag is required" in errors
 
     def test_all_fields_missing(self, app, setup_category):
         with app.app_context():
             errors = validate_equipment_data({})
-            assert len(errors) == 9
+            assert len(errors) == 2
 
     def test_optional_fields_not_required(self, app, setup_category):
         with app.app_context():

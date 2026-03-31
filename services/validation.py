@@ -13,11 +13,6 @@ def validate_equipment_data(data: dict, is_update: bool = False, equipment_id: i
     required_fields = [
         "asset_tag",
         "name",
-        "category",
-        "manufacturer",
-        "model",
-        "serial_number",
-        "purchase_cost",
     ]
 
     # Check required fields

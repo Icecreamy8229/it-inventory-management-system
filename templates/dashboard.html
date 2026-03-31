@@ -155,7 +155,7 @@
                     <tr>
                         <td><a href="{{ url_for('equipment_detail', equipment_id=item.id) }}">{{ item.asset_tag }}</a></td>
                         <td>{{ item.name }}</td>
-                        <td>{{ item.category }}</td>
+                        <td>{{ item.category or '—' }}</td>
                         <td>{{ item.warranty_expiration_date }}</td>
                     </tr>
                     {% endfor %}
@@ -186,7 +186,7 @@
                     <tr>
                         <td><a href="{{ url_for('equipment_detail', equipment_id=item.id) }}">{{ item.asset_tag }}</a></td>
                         <td>{{ item.name }}</td>
-                        <td>{{ item.category }}</td>
+                        <td>{{ item.category or '—' }}</td>
                         <td>{{ item.purchase_date }}</td>
                     </tr>
                     {% endfor %}

@@ -59,14 +59,14 @@
             <tr>
                 <td>
                     {% if item.image_filename %}
-                    <img src="{{ url_for('uploaded_file', filename=item.image_filename) }}" alt="{{ item.name }}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px;">
+                    <img src="{{ url_for('uploaded_file', filename=item.image_filename) }}" alt="{{ item.name or item.asset_tag }}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px;">
                     {% else %}
                     <span class="text-muted" style="display: inline-block; width: 48px; height: 48px; line-height: 48px; text-align: center; background: var(--bg-surface-hover); border-radius: 4px;">—</span>
                     {% endif %}
                 </td>
                 <td><a href="{{ url_for('equipment_detail', equipment_id=item.id) }}">{{ item.asset_tag }}</a></td>
                 <td>{{ item.name }}</td>
-                <td>{{ item.category }}</td>
+                <td>{{ item.category or '—' }}</td>
                 <td>
                     {% set badge_map = {'available': 'success', 'assigned': 'primary', 'under-repair': 'warning', 'retired': 'secondary'} %}
                     {% set badge_key = item.status|lower|replace(' ', '-') %}

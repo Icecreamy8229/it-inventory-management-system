@@ -83,7 +83,7 @@ class TestCreateEquipment:
         assert equip.notes is None
 
     def test_raises_on_missing_required_field(self, service, sample_data):
-        del sample_data["name"]
+        del sample_data["asset_tag"]
         with pytest.raises(ValueError):
             service.create_equipment(sample_data)
 
@@ -145,7 +145,7 @@ class TestUpdateEquipment:
 
     def test_raises_value_error_on_invalid_data(self, service, sample_data):
         equip = service.create_equipment(sample_data)
-        bad_data = dict(sample_data, name="")
+        bad_data = dict(sample_data, asset_tag="")
         with pytest.raises(ValueError):
             service.update_equipment(equip.id, bad_data)
 

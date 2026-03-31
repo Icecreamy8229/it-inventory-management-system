@@ -34,13 +34,6 @@ def app():
 REQUIRED_FIELDS = [
     "asset_tag",
     "name",
-    "category",
-    "manufacturer",
-    "model",
-    "serial_number",
-    "purchase_date",
-    "purchase_cost",
-    "warranty_expiration_date",
 ]
 
 

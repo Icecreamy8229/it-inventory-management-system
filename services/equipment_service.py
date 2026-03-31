@@ -34,12 +34,12 @@ class EquipmentService:
         equipment = Equipment(
             asset_tag=data["asset_tag"],
             name=data["name"],
-            category=data["category"],
-            manufacturer=data["manufacturer"],
-            model=data["model"],
-            serial_number=data["serial_number"],
+            category=data.get("category"),
+            manufacturer=data.get("manufacturer"),
+            model=data.get("model"),
+            serial_number=data.get("serial_number"),
             purchase_date=data.get("purchase_date"),
-            purchase_cost=data["purchase_cost"],
+            purchase_cost=data.get("purchase_cost"),
             warranty_expiration_date=data.get("warranty_expiration_date"),
             status="Available",
             location=data.get("location"),
@@ -275,12 +275,13 @@ class EquipmentService:
             by_status[item.status] = by_status.get(item.status, 0) + 1
 
             # Category counts
-            by_category[item.category] = by_category.get(item.category, 0) + 1
+            cat_key = item.category or "Uncategorized"
+            by_category[cat_key] = by_category.get(cat_key, 0) + 1
 
             # Asset value
             cost = item.purchase_cost or 0
             total_value += cost
-            value_by_category[item.category] = value_by_category.get(item.category, 0) + cost
+            value_by_category[cat_key] = value_by_category.get(cat_key, 0) + cost
             value_by_status[item.status] = value_by_status.get(item.status, 0) + cost
 
             # Warranty expiring within 90 days
@@ -291,9 +292,9 @@ class EquipmentService:
             if item.purchase_date:
                 age_days = (today - item.purchase_date).days
                 age_years = age_days / 365.25
-                if item.category not in age_by_category:
-                    age_by_category[item.category] = []
-                age_by_category[item.category].append(age_days)
+                if cat_key not in age_by_category:
+                    age_by_category[cat_key] = []
+                age_by_category[cat_key].append(age_days)
                 if age_years >= 4:
                     aging_items.append(item)
 
