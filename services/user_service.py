@@ -63,3 +63,14 @@ class UserService:
     def get_user_by_id(self, user_id: int) -> User | None:
         """Retrieve a user by ID. Used by Flask-Login's user_loader."""
         return db.session.get(User, user_id)
+
+    def change_password(self, user_id: int, current_password: str, new_password: str) -> User:
+        """Change a user's password after verifying the current one."""
+        user = db.session.get(User, user_id)
+        if user is None:
+            raise ValueError(f"User with id {user_id} not found")
+        if not check_password_hash(user.password_hash, current_password):
+            raise ValueError("Current password is incorrect")
+        user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        return user

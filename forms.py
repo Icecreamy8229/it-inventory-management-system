@@ -120,3 +120,12 @@ class ChangeRoleForm(FlaskForm):
         validators=[DataRequired()],
         choices=[("viewer", "Viewer"), ("admin", "Admin")],
     )
+
+
+class ChangePasswordForm(FlaskForm):
+    current_password = PasswordField("Current Password", validators=[DataRequired()])
+    new_password = PasswordField("New Password", validators=[DataRequired(), Length(min=6)])
+    new_password_confirm = PasswordField(
+        "Confirm New Password",
+        validators=[DataRequired(), EqualTo("new_password", message="Passwords do not match.")],
+    )

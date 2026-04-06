@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - {{ system_config.app_title if system_config else 'Equipment Inventory' }}{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-4">Profile</h1>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Account Info</h2>
+        <p class="mb-1"><span class="text-muted">Username:</span> {{ current_user.username }}</p>
+        <p class="mb-0"><span class="text-muted">Role:</span> {{ current_user.role }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <h2 class="h5 mb-3">Change Password</h2>
+        <form method="POST" action="{{ url_for('profile_change_password') }}">
+            {{ change_password_form.hidden_tag() }}
+            <div class="mb-3">
+                <label for="current_password" class="form-label">Current Password</label>
+                {{ change_password_form.current_password(class="form-control", id="current_password") }}
+            </div>
+            <div class="mb-3">
+                <label for="new_password" class="form-label">New Password</label>
+                {{ change_password_form.new_password(class="form-control", id="new_password") }}
+                <div class="form-text">Minimum 6 characters.</div>
+            </div>
+            <div class="mb-3">
+                <label for="new_password_confirm" class="form-label">Confirm New Password</label>
+                {{ change_password_form.new_password_confirm(class="form-control", id="new_password_confirm") }}
+            </div>
+            <button type="submit" class="btn btn-primary">Change Password</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

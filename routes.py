@@ -16,6 +16,7 @@ from exceptions import ConflictError
 from forms import (
     AddCategoryForm,
     AssignForm,
+    ChangePasswordForm,
     ChangeRoleForm,
     ChangeStatusForm,
     CreateUserForm,
@@ -492,7 +493,43 @@ def register_routes(app):
         return redirect(url_for("equipment_detail", equipment_id=equipment_id))
 
     # -------------------------------------------------------------------------
-    # 8.6 - Settings and user management routes
+    # 8.6 - Profile (all users)
+    # -------------------------------------------------------------------------
+
+    @app.route("/profile")
+    @login_required
+    def profile():
+        change_password_form = ChangePasswordForm()
+        return render_template("profile.html", change_password_form=change_password_form)
+
+    @app.route("/profile/change-password", methods=["POST"])
+    @login_required
+    def profile_change_password():
+        form = ChangePasswordForm()
+        if not form.validate_on_submit():
+            errors = []
+            for field, field_errors in form.errors.items():
+                for err in field_errors:
+                    errors.append(err)
+            flash(" ".join(errors), "error")
+            return redirect(url_for("profile"))
+
+        user_service = UserService()
+        try:
+            user_service.change_password(
+                current_user.id,
+                form.current_password.data,
+                form.new_password.data,
+            )
+        except ValueError as e:
+            flash(str(e), "error")
+            return redirect(url_for("profile"))
+
+        flash("Password changed successfully.", "success")
+        return redirect(url_for("profile"))
+
+    # -------------------------------------------------------------------------
+    # 8.7 - Settings and user management routes (admin only)
     # -------------------------------------------------------------------------
 
     @app.route("/settings")
