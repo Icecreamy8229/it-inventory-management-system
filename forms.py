@@ -36,6 +36,7 @@ ALLOWED_IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"]
 
 class EquipmentForm(FlaskForm):
     expected_updated_at = HiddenField()
+    continuous_mode = BooleanField("Continuous Registration")
     asset_tag = StringField("Asset Tag", validators=[DataRequired(), Length(max=100)])
     name = StringField("Name", validators=[DataRequired(), Length(max=200)])
     category = SelectField("Category", validators=[Optional()], choices=[])

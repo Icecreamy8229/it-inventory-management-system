@@ -413,3 +413,35 @@ dd { color: var(--text-primary); }
   padding: 2.5rem 2rem;
   animation: cardFadeIn 0.6s ease-out;
 }
+
+/* ---------- Continuous Registration toggle ---------- */
+.continuous-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-light-override);
+  transition: border-color 0.2s, background 0.2s;
+}
+.continuous-toggle:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+}
+.continuous-toggle .form-check-label {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0;
+}
+.continuous-toggle .form-check-input {
+  width: 2.25em;
+  height: 1.15em;
+  cursor: pointer;
+  margin-top: 0;
+}
+.continuous-toggle .form-check-input:checked + .form-check-label {
+  color: var(--accent-light);
+}

@@ -303,6 +303,8 @@ def register_routes(app):
             return render_template("equipment_form.html", form=form, errors=errors)
 
         flash("Equipment registered successfully.", "success")
+        if form.continuous_mode.data:
+            return redirect(url_for("equipment_new"))
         return redirect(url_for("equipment_detail", equipment_id=equipment.id))
 
     @app.route("/equipment/<int:equipment_id>")
