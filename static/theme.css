@@ -445,7 +445,8 @@ dd { color: var(--text-primary); }
 }
 .continuous-toggle .form-check-input:checked + .form-check-label {
   color: var(--accent-light);
-=======
+}
+
 /* ---------- Pagination ---------- */
 .pagination .page-link {
   background: var(--bg-surface);
@@ -467,5 +468,4 @@ dd { color: var(--text-primary); }
   background: var(--bg-surface);
   border-color: var(--border-subtle);
   color: var(--text-muted);
->>>>>>> Stashed changes
 }
