@@ -193,8 +193,11 @@ class EquipmentService:
         db.session.commit()
         return equipment
 
-    def list_equipment(self, search: str = None, sort_by: str = None, sort_order: str = "asc", filter_type: str = None) -> list:
-        """List equipment with optional search, sorting, and preset filters."""
+    def list_equipment(self, search: str = None, sort_by: str = None, sort_order: str = "asc", filter_type: str = None, page: int = 1, per_page: int = 20):
+        """List equipment with optional search, sorting, preset filters, and pagination.
+
+        Returns a Flask-SQLAlchemy Pagination object with .items, .pages, .page, .total, etc.
+        """
         from datetime import date, timedelta
 
         query = Equipment.query
@@ -247,7 +250,7 @@ class EquipmentService:
             else:
                 query = query.order_by(column.asc())
 
-        return query.all()
+        return query.paginate(page=page, per_page=per_page, error_out=False)
 
     def lookup_by_asset_tag(self, asset_tag: str) -> Equipment | None:
         """Look up a single equipment record by exact asset tag match."""

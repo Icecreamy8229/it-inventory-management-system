@@ -414,6 +414,7 @@ dd { color: var(--text-primary); }
   animation: cardFadeIn 0.6s ease-out;
 }
 
+<<<<<<< Updated upstream
 /* ---------- Continuous Registration toggle ---------- */
 .continuous-toggle {
   display: flex;
@@ -444,4 +445,27 @@ dd { color: var(--text-primary); }
 }
 .continuous-toggle .form-check-input:checked + .form-check-label {
   color: var(--accent-light);
+=======
+/* ---------- Pagination ---------- */
+.pagination .page-link {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-light);
+  transition: background .2s, border-color .2s, color .2s;
+}
+.pagination .page-link:hover {
+  background: var(--bg-surface-hover);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: var(--text-primary);
+}
+.pagination .page-item.active .page-link {
+  background: var(--btn-primary-gradient);
+  border-color: var(--accent);
+  color: #fff;
+}
+.pagination .page-item.disabled .page-link {
+  background: var(--bg-surface);
+  border-color: var(--border-subtle);
+  color: var(--text-muted);
+>>>>>>> Stashed changes
 }

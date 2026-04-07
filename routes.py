@@ -154,13 +154,19 @@ def register_routes(app):
         sort_by = request.args.get("sort_by", "")
         sort_order = request.args.get("sort_order", "asc")
         filter_type = request.args.get("filter", "").strip()
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 10, type=int)
+        if per_page not in (10, 25, 50, 100, 200):
+            per_page = 10
 
         equipment_service = EquipmentService()
-        items = equipment_service.list_equipment(
+        pagination = equipment_service.list_equipment(
             search=search or None,
             sort_by=sort_by or None,
             sort_order=sort_order,
             filter_type=filter_type or None,
+            page=page,
+            per_page=per_page,
         )
 
         filter_label = ""
@@ -178,12 +184,14 @@ def register_routes(app):
 
         return render_template(
             "equipment_list.html",
-            equipment=items,
+            equipment=pagination.items,
+            pagination=pagination,
             search=search,
             sort_by=sort_by,
             sort_order=sort_order,
             filter_type=filter_type,
             filter_label=filter_label,
+            per_page=per_page,
         )
 
     @app.route("/equipment/scan-lookup")
@@ -214,12 +222,16 @@ def register_routes(app):
         filter_type = request.args.get("filter", "").strip()
 
         equipment_service = EquipmentService()
-        items = equipment_service.list_equipment(
+        # Export all matching records (no pagination limit)
+        pagination = equipment_service.list_equipment(
             search=search or None,
             sort_by=sort_by or None,
             sort_order=sort_order,
             filter_type=filter_type or None,
+            page=1,
+            per_page=999999,
         )
+        items = pagination.items
 
         wb = Workbook()
         ws = wb.active

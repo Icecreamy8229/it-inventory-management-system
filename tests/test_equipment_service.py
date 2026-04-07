@@ -421,103 +421,122 @@ class TestListEquipment:
     def test_list_all_equipment(self, service):
         self._create_items(service)
         result = service.list_equipment()
-        assert len(result) == 3
+        assert result.total == 3
+        assert len(result.items) == 3
 
     def test_list_returns_empty_when_no_records(self, service):
         result = service.list_equipment()
-        assert result == []
+        assert result.items == []
+        assert result.total == 0
 
     def test_search_by_name(self, service):
         self._create_items(service)
         result = service.list_equipment(search="Alpha")
-        assert len(result) == 1
-        assert result[0].name == "Alpha Laptop"
+        assert len(result.items) == 1
+        assert result.items[0].name == "Alpha Laptop"
 
     def test_search_by_asset_tag(self, service):
         self._create_items(service)
         result = service.list_equipment(search="AT-200")
-        assert len(result) == 1
-        assert result[0].asset_tag == "AT-200"
+        assert len(result.items) == 1
+        assert result.items[0].asset_tag == "AT-200"
 
     def test_search_by_serial_number(self, service):
         self._create_items(service)
         result = service.list_equipment(search="SN-300")
-        assert len(result) == 1
-        assert result[0].serial_number == "SN-300"
+        assert len(result.items) == 1
+        assert result.items[0].serial_number == "SN-300"
 
     def test_search_by_category(self, service):
         self._create_items(service)
         result = service.list_equipment(search="Monitors")
-        assert len(result) == 1
-        assert result[0].category == "Monitors"
+        assert len(result.items) == 1
+        assert result.items[0].category == "Monitors"
 
     def test_search_by_location(self, service):
         self._create_items(service)
         result = service.list_equipment(search="Building A")
-        assert len(result) == 1
-        assert result[0].location == "Building A"
+        assert len(result.items) == 1
+        assert result.items[0].location == "Building A"
 
     def test_search_by_notes(self, service):
         self._create_items(service)
         result = service.list_equipment(search="docking")
-        assert len(result) == 1
-        assert "docking" in result[0].notes.lower()
+        assert len(result.items) == 1
+        assert "docking" in result.items[0].notes.lower()
 
     def test_search_by_assignee(self, service):
         items = self._create_items(service)
         service.assign_equipment(items[0].id, "John Doe")
         result = service.list_equipment(search="John")
-        assert len(result) == 1
-        assert result[0].assignee == "John Doe"
+        assert len(result.items) == 1
+        assert result.items[0].assignee == "John Doe"
 
     def test_search_is_case_insensitive(self, service):
         self._create_items(service)
         result = service.list_equipment(search="alpha")
-        assert len(result) == 1
-        assert result[0].name == "Alpha Laptop"
+        assert len(result.items) == 1
+        assert result.items[0].name == "Alpha Laptop"
 
     def test_search_no_match_returns_empty(self, service):
         self._create_items(service)
         result = service.list_equipment(search="NonExistentThing")
-        assert result == []
+        assert result.items == []
 
     def test_sort_by_name_ascending(self, service):
         self._create_items(service)
         result = service.list_equipment(sort_by="name", sort_order="asc")
-        names = [r.name for r in result]
+        names = [r.name for r in result.items]
         assert names == sorted(names)
 
     def test_sort_by_name_descending(self, service):
         self._create_items(service)
         result = service.list_equipment(sort_by="name", sort_order="desc")
-        names = [r.name for r in result]
+        names = [r.name for r in result.items]
         assert names == sorted(names, reverse=True)
 
     def test_sort_by_asset_tag(self, service):
         self._create_items(service)
         result = service.list_equipment(sort_by="asset_tag", sort_order="asc")
-        tags = [r.asset_tag for r in result]
+        tags = [r.asset_tag for r in result.items]
         assert tags == sorted(tags)
 
     def test_sort_by_invalid_column_ignored(self, service):
         self._create_items(service)
         result = service.list_equipment(sort_by="nonexistent_field")
-        assert len(result) == 3
+        assert len(result.items) == 3
 
     def test_search_and_sort_combined(self, service):
         self._create_items(service)
         # Search for items with "Laptop" or "Server" won't both match,
         # but searching for a common manufacturer should return all, then sort
         result = service.list_equipment(search="SN-", sort_by="asset_tag", sort_order="desc")
-        assert len(result) == 3
-        tags = [r.asset_tag for r in result]
+        assert len(result.items) == 3
+        tags = [r.asset_tag for r in result.items]
         assert tags == sorted(tags, reverse=True)
 
     def test_sort_defaults_to_ascending(self, service):
         self._create_items(service)
         result = service.list_equipment(sort_by="name")
-        names = [r.name for r in result]
+        names = [r.name for r in result.items]
         assert names == sorted(names)
+
+    def test_pagination_returns_correct_page(self, service):
+        self._create_items(service)
+        result = service.list_equipment(per_page=2, page=1)
+        assert len(result.items) == 2
+        assert result.total == 3
+        assert result.pages == 2
+
+    def test_pagination_second_page(self, service):
+        self._create_items(service)
+        result = service.list_equipment(per_page=2, page=2)
+        assert len(result.items) == 1
+
+    def test_pagination_out_of_range_returns_empty(self, service):
+        self._create_items(service)
+        result = service.list_equipment(per_page=20, page=99)
+        assert result.items == []
 
 
 class TestLookupByAssetTag:
@@ -564,7 +583,10 @@ class TestGetDashboardSummary:
 
     def test_empty_database_returns_empty_dicts(self, service):
         summary = service.get_dashboard_summary()
-        assert summary == {"by_status": {}, "by_category": {}}
+        assert summary["by_status"] == {}
+        assert summary["by_category"] == {}
+        assert summary["total_count"] == 0
+        assert summary["total_value"] == 0.0
 
     def test_counts_by_status(self, service):
         service.create_equipment(self._make_data("A1", "S1"))
