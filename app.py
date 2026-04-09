@@ -71,6 +71,9 @@ def create_app(config_overrides=None):
         # Lightweight migration: add columns that may not exist yet
         _migrate_add_columns(app)
 
+        # Migrate legacy equipment_history into equipment_snapshot
+        _migrate_history_to_snapshots(app)
+
         # Seed from config.yaml on first startup
         from services.seed_service import seed_from_config
         seed_from_config()
@@ -98,6 +101,15 @@ def _migrate_add_columns(app):
                 "ALTER TABLE equipment ADD COLUMN image_filename VARCHAR(300)"
             ))
             conn.commit()
+
+        # Add has_full_data to equipment_snapshot if missing
+        if "equipment_snapshot" in inspector.get_table_names():
+            snapshot_columns = [c["name"] for c in inspector.get_columns("equipment_snapshot")]
+            if "has_full_data" not in snapshot_columns:
+                conn.execute(sqlalchemy.text(
+                    "ALTER TABLE equipment_snapshot ADD COLUMN has_full_data BOOLEAN NOT NULL DEFAULT 1"
+                ))
+                conn.commit()
 
         # Migration: relax NOT NULL constraints on optional equipment fields.
         # SQLite cannot ALTER COLUMN, so we rebuild the table if needed.
@@ -160,3 +172,38 @@ def _migrate_equipment_nullable(conn, inspector):
     conn.execute(sqlalchemy.text("PRAGMA foreign_keys = ON"))
     conn.commit()
 
+
+
+def _migrate_history_to_snapshots(app):
+    """Move legacy equipment_history rows into equipment_snapshot, then drop the old table."""
+    import sqlalchemy
+
+    with db.engine.connect() as conn:
+        inspector = sqlalchemy.inspect(db.engine)
+        if "equipment_history" not in inspector.get_table_names():
+            return
+
+        # Copy rows that haven't been migrated yet
+        rows = conn.execute(sqlalchemy.text(
+            "SELECT id, equipment_id, change_date, change_type, description, changed_by "
+            "FROM equipment_history"
+        )).fetchall()
+
+        for row in rows:
+            conn.execute(
+                sqlalchemy.text(
+                    "INSERT INTO equipment_snapshot "
+                    "(equipment_id, snapshot_date, change_type, description, changed_by, has_full_data) "
+                    "VALUES (:eid, :sd, :ct, :desc, :cb, 0)"
+                ),
+                {
+                    "eid": row[1],
+                    "sd": row[2],
+                    "ct": row[3],
+                    "desc": row[4],
+                    "cb": row[5],
+                },
+            )
+
+        conn.execute(sqlalchemy.text("DROP TABLE equipment_history"))
+        conn.commit()

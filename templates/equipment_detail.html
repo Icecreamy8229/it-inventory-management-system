@@ -106,13 +106,14 @@
     {% endif %}
 </div>
 
-<!-- History Snapshots -->
+<!-- Equipment History -->
 <div class="card">
     <div class="card-body">
-        <h2 class="h6 mb-3">History Snapshots</h2>
+        <h2 class="h6 mb-3">Equipment History</h2>
         {% if equipment.snapshots %}
         <div class="list-group">
             {% for snap in equipment.snapshots %}
+            {% if snap.has_full_data %}
             <a href="{{ url_for('equipment_snapshot', equipment_id=equipment.id, snapshot_id=snap.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start">
                 <div>
                     <div class="fw-semibold">{{ snap.change_type }}</div>
@@ -123,30 +124,19 @@
                     <small class="text-muted">{{ snap.changed_by or '—' }}</small>
                 </div>
             </a>
+            {% else %}
+            <div class="list-group-item d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="fw-semibold">{{ snap.change_type }}</div>
+                    <small class="text-muted">{{ snap.description }}</small>
+                </div>
+                <div class="text-end">
+                    <div class="small">{{ snap.snapshot_date.strftime('%Y-%m-%d %H:%M') }}</div>
+                    <small class="text-muted">{{ snap.changed_by or '—' }}</small>
+                </div>
+            </div>
+            {% endif %}
             {% endfor %}
-        </div>
-        {% elif equipment.history_entries %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Date</th>
-                        <th>Action</th>
-                        <th>Details</th>
-                        <th>Changed By</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for entry in equipment.history_entries|sort(attribute='change_date', reverse=true) %}
-                    <tr>
-                        <td>{{ entry.change_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                        <td>{{ entry.change_type }}</td>
-                        <td>{{ entry.description }}</td>
-                        <td>{{ entry.changed_by or '—' }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
         {% else %}
         <p class="text-muted small mb-0">No history entries.</p>

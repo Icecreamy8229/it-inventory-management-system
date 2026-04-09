@@ -26,7 +26,7 @@
                     <img src="{{ url_for('uploaded_file', filename=snapshot.image_filename) }}" alt="Photo of {{ snapshot.name }}" class="img-fluid rounded" style="max-height:300px;">
                 </div>
                 {% else %}
-                <div class="mb-3 text-center text-muted small">No image at this point in time.</div>
+                <div class="mb-3 text-center text-muted small" style="padding:2rem 0; border:1px dashed var(--border-subtle); border-radius:8px;">No image at this point in time.</div>
                 {% endif %}
                 <dl class="row mb-0">
                     <dt class="col-sm-4 text-muted">Asset Tag</dt>

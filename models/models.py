@@ -24,26 +24,10 @@ class Equipment(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    history_entries = db.relationship(
-        "EquipmentHistory", backref="equipment", cascade="all, delete-orphan"
-    )
     snapshots = db.relationship(
         "EquipmentSnapshot", backref="equipment", cascade="all, delete-orphan",
         order_by="EquipmentSnapshot.snapshot_date.desc()"
     )
-
-
-class EquipmentHistory(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    equipment_id = db.Column(
-        db.Integer, db.ForeignKey("equipment.id"), nullable=False
-    )
-    change_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    change_type = db.Column(db.String(50), nullable=False)
-    description = db.Column(db.Text, nullable=False)
-    previous_value = db.Column(db.String(200), nullable=True)
-    new_value = db.Column(db.String(200), nullable=True)
-    changed_by = db.Column(db.String(80), nullable=True)
 
 
 class EquipmentSnapshot(db.Model):
@@ -56,10 +40,11 @@ class EquipmentSnapshot(db.Model):
     change_type = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text, nullable=False)
     changed_by = db.Column(db.String(80), nullable=True)
+    has_full_data = db.Column(db.Boolean, nullable=False, default=True)
 
     # Full copy of equipment fields at this point in time
-    asset_tag = db.Column(db.String(100), nullable=False)
-    name = db.Column(db.String(200), nullable=False)
+    asset_tag = db.Column(db.String(100), nullable=True)
+    name = db.Column(db.String(200), nullable=True)
     category = db.Column(db.String(50), nullable=True)
     manufacturer = db.Column(db.String(100), nullable=True)
     model = db.Column(db.String(100), nullable=True)

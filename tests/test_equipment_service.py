@@ -2,7 +2,7 @@ import pytest
 from datetime import date
 
 from app import create_app, db
-from models import Equipment, EquipmentHistory, Category
+from models import Equipment, EquipmentSnapshot, Category
 from services.equipment_service import EquipmentService
 
 
@@ -65,7 +65,7 @@ class TestCreateEquipment:
 
     def test_creates_history_entry(self, service, sample_data):
         equip = service.create_equipment(sample_data)
-        history = EquipmentHistory.query.filter_by(equipment_id=equip.id).all()
+        history = EquipmentSnapshot.query.filter_by(equipment_id=equip.id).all()
         assert len(history) == 1
         assert history[0].change_type == "Created"
         assert history[0].description == "Equipment record created"
@@ -123,18 +123,17 @@ class TestUpdateEquipment:
         equip = service.create_equipment(sample_data)
         update_data = dict(sample_data, name="New Name")
         service.update_equipment(equip.id, update_data)
-        history = EquipmentHistory.query.filter_by(
+        history = EquipmentSnapshot.query.filter_by(
             equipment_id=equip.id, change_type="Updated"
         ).all()
         assert len(history) == 1
         assert "name" in history[0].description
-        assert history[0].previous_value is not None
-        assert history[0].new_value is not None
+        assert history[0].name == "New Name"
 
     def test_no_history_when_no_fields_changed(self, service, sample_data):
         equip = service.create_equipment(sample_data)
         service.update_equipment(equip.id, sample_data)
-        updated_history = EquipmentHistory.query.filter_by(
+        updated_history = EquipmentSnapshot.query.filter_by(
             equipment_id=equip.id, change_type="Updated"
         ).all()
         assert len(updated_history) == 0
@@ -201,11 +200,10 @@ class TestDeleteEquipment:
     def test_cascade_deletes_history_entries(self, service, sample_data):
         equip = service.create_equipment(sample_data)
         equip_id = equip.id
-        # Verify history exists before delete
-        history_before = EquipmentHistory.query.filter_by(equipment_id=equip_id).all()
+        history_before = EquipmentSnapshot.query.filter_by(equipment_id=equip_id).all()
         assert len(history_before) >= 1
         service.delete_equipment(equip_id)
-        history_after = EquipmentHistory.query.filter_by(equipment_id=equip_id).all()
+        history_after = EquipmentSnapshot.query.filter_by(equipment_id=equip_id).all()
         assert len(history_after) == 0
 
     def test_raises_value_error_for_nonexistent_id(self, service):
@@ -229,12 +227,11 @@ class TestAssignEquipment:
     def test_records_assignment_history(self, service, sample_data):
         equip = service.create_equipment(sample_data)
         service.assign_equipment(equip.id, "John Doe")
-        history = EquipmentHistory.query.filter_by(
+        history = EquipmentSnapshot.query.filter_by(
             equipment_id=equip.id, change_type="Assignment"
         ).all()
         assert len(history) == 1
-        assert history[0].new_value == "John Doe"
-        assert history[0].previous_value is None
+        assert history[0].assignee == "John Doe"
 
     def test_rejects_assignment_when_retired(self, service, sample_data):
         equip = service.create_equipment(sample_data)
@@ -273,12 +270,12 @@ class TestAssignEquipment:
         equip = service.create_equipment(sample_data)
         service.assign_equipment(equip.id, "Alice")
         service.assign_equipment(equip.id, "Bob")
-        history = EquipmentHistory.query.filter_by(
+        history = EquipmentSnapshot.query.filter_by(
             equipment_id=equip.id, change_type="Assignment"
-        ).order_by(EquipmentHistory.id).all()
+        ).order_by(EquipmentSnapshot.id).all()
         assert len(history) == 2
-        assert history[1].previous_value == "Alice"
-        assert history[1].new_value == "Bob"
+        assert history[0].assignee == "Alice"
+        assert history[1].assignee == "Bob"
 
 
 class TestUnassignEquipment:
@@ -293,12 +290,11 @@ class TestUnassignEquipment:
         equip = service.create_equipment(sample_data)
         service.assign_equipment(equip.id, "John Doe")
         service.unassign_equipment(equip.id)
-        history = EquipmentHistory.query.filter_by(
+        history = EquipmentSnapshot.query.filter_by(
             equipment_id=equip.id, change_type="Unassignment"
         ).all()
         assert len(history) == 1
-        assert history[0].previous_value == "John Doe"
-        assert history[0].new_value is None
+        assert history[0].assignee is None
 
     def test_raises_for_nonexistent_equipment(self, service):
         with pytest.raises(ValueError, match="Equipment not found"):
@@ -331,12 +327,11 @@ class TestChangeStatus:
     def test_records_status_change_history(self, service, sample_data):
         equip = service.create_equipment(sample_data)
         service.change_status(equip.id, "Under Repair")
-        history = EquipmentHistory.query.filter_by(
+        history = EquipmentSnapshot.query.filter_by(
             equipment_id=equip.id, change_type="StatusChange"
         ).all()
         assert len(history) == 1
-        assert history[0].previous_value == "Available"
-        assert history[0].new_value == "Under Repair"
+        assert history[0].status == "Under Repair"
         assert "Available" in history[0].description
         assert "Under Repair" in history[0].description
 

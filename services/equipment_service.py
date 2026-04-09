@@ -6,7 +6,7 @@ from flask import current_app
 from werkzeug.utils import secure_filename
 
 from app import db
-from models import Equipment, EquipmentHistory, EquipmentSnapshot
+from models import Equipment, EquipmentSnapshot
 from services.validation import validate_equipment_data
 from exceptions import ConflictError
 
@@ -20,7 +20,8 @@ class EquipmentService:
 
     @staticmethod
     def _create_snapshot(equipment, change_type, description, username=None):
-        """Create a point-in-time snapshot of the equipment's current state."""
+        """Create a point-in-time snapshot of the equipment's current state,
+        referencing the same image file on disk."""
         return EquipmentSnapshot(
             equipment_id=equipment.id,
             change_type=change_type,
@@ -73,13 +74,6 @@ class EquipmentService:
         db.session.add(equipment)
         db.session.flush()
 
-        history = EquipmentHistory(
-            equipment_id=equipment.id,
-            change_type="Created",
-            description="Equipment record created",
-            changed_by=username,
-        )
-        db.session.add(history)
         db.session.add(self._create_snapshot(equipment, "Created", "Equipment record created", username))
         db.session.commit()
         return equipment
@@ -106,16 +100,12 @@ class EquipmentService:
             "warranty_expiration_date", "location", "notes",
         ]
         changed_fields = []
-        old_values = {}
-        new_values = {}
         for field in updatable_fields:
             if field in data:
                 old_val = getattr(equipment, field)
                 new_val = data[field]
                 if old_val != new_val:
                     changed_fields.append(field)
-                    old_values[field] = str(old_val) if old_val is not None else None
-                    new_values[field] = str(new_val) if new_val is not None else None
 
         for field in updatable_fields:
             if field in data:
@@ -123,31 +113,15 @@ class EquipmentService:
 
         # Handle image upload / removal
         if remove_image and equipment.image_filename:
-            self._delete_image(equipment.image_filename)
             changed_fields.append("image")
-            old_values["image"] = equipment.image_filename
-            new_values["image"] = None
             equipment.image_filename = None
         elif image_file and image_file.filename:
-            old_image = equipment.image_filename
             new_filename = self._save_image(image_file)
-            if old_image:
-                self._delete_image(old_image)
             equipment.image_filename = new_filename
             changed_fields.append("image")
-            old_values["image"] = old_image
-            new_values["image"] = new_filename
 
         if changed_fields:
             description = "Updated fields: " + ", ".join(changed_fields)
-            previous_value = "; ".join(f"{f}: {old_values[f]}" for f in changed_fields)
-            new_value = "; ".join(f"{f}: {new_values[f]}" for f in changed_fields)
-            history = EquipmentHistory(
-                equipment_id=equipment.id, change_type="Updated",
-                description=description, previous_value=previous_value, new_value=new_value,
-                changed_by=username,
-            )
-            db.session.add(history)
             db.session.add(self._create_snapshot(equipment, "Updated", description, username))
 
         db.session.commit()
@@ -167,12 +141,6 @@ class EquipmentService:
         equipment.assignee = assignee
         equipment.status = "Assigned"
         description = f"Assigned to {assignee}"
-        history = EquipmentHistory(
-            equipment_id=equipment.id, change_type="Assignment",
-            description=description, previous_value=previous_assignee, new_value=assignee,
-            changed_by=username,
-        )
-        db.session.add(history)
         db.session.add(self._create_snapshot(equipment, "Assignment", description, username))
         db.session.commit()
         return equipment
@@ -189,12 +157,6 @@ class EquipmentService:
         equipment.assignee = None
         equipment.status = "Available"
         description = f"Unassigned from {previous_assignee}"
-        history = EquipmentHistory(
-            equipment_id=equipment.id, change_type="Unassignment",
-            description=description, previous_value=previous_assignee, new_value=None,
-            changed_by=username,
-        )
-        db.session.add(history)
         db.session.add(self._create_snapshot(equipment, "Unassignment", description, username))
         db.session.commit()
         return equipment
@@ -214,13 +176,6 @@ class EquipmentService:
             equipment.assignee = None
         equipment.status = new_status
         description = f"Status changed from {previous_status} to {new_status}"
-        history = EquipmentHistory(
-            equipment_id=equipment.id, change_type="StatusChange",
-            description=description,
-            previous_value=previous_status, new_value=new_status,
-            changed_by=username,
-        )
-        db.session.add(history)
         db.session.add(self._create_snapshot(equipment, "StatusChange", description, username))
         db.session.commit()
         return equipment
@@ -377,14 +332,21 @@ class EquipmentService:
         return snapshot
 
     def delete_equipment(self, equipment_id: int) -> None:
-        """Delete an equipment record."""
+        """Delete an equipment record and all associated image files."""
         equipment = db.session.get(Equipment, equipment_id)
         if equipment is None:
             raise ValueError("Equipment not found")
+        # Collect all unique image filenames from equipment + snapshots
+        image_files = set()
         if equipment.image_filename:
-            self._delete_image(equipment.image_filename)
+            image_files.add(equipment.image_filename)
+        for snap in equipment.snapshots:
+            if snap.image_filename:
+                image_files.add(snap.image_filename)
         db.session.delete(equipment)
         db.session.commit()
+        for filename in image_files:
+            self._delete_image(filename)
 
     # ----- Image helpers -----
 

@@ -1,4 +1,4 @@
 # Models package
-from models.models import Equipment, EquipmentHistory, EquipmentSnapshot, SystemConfig, Category, User
+from models.models import Equipment, EquipmentSnapshot, SystemConfig, Category, User
 
-__all__ = ["Equipment", "EquipmentHistory", "EquipmentSnapshot", "SystemConfig", "Category", "User"]
+__all__ = ["Equipment", "EquipmentSnapshot", "SystemConfig", "Category", "User"]

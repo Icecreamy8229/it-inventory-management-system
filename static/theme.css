@@ -469,3 +469,41 @@ dd { color: var(--text-primary); }
   border-color: var(--border-subtle);
   color: var(--text-muted);
 }
+
+/* ---------- Snapshot list (equipment detail) ---------- */
+.list-group-item {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  transition: background .2s, border-color .2s;
+}
+.list-group-item:hover,
+.list-group-item:focus {
+  background: var(--bg-surface-hover);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: var(--text-primary);
+}
+.list-group-item.active {
+  background: var(--btn-primary-gradient);
+  border-color: var(--accent);
+  color: #fff;
+}
+.list-group-item.active .text-muted {
+  color: rgba(255, 255, 255, 0.6) !important;
+}
+.list-group-item .fw-semibold {
+  color: var(--text-heading);
+}
+.list-group-item.active .fw-semibold {
+  color: #fff;
+}
+.list-group-item .text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* Snapshot detail page */
+.badge.bg-info {
+  background: var(--alert-info-bg) !important;
+  color: var(--accent-light);
+  border: 1px solid var(--alert-info-border);
+}
