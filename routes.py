@@ -306,11 +306,11 @@ def register_routes(app):
             return render_template("equipment_form.html", form=form, errors=errors)
 
         data = _form_to_equipment_data(form)
-        image_file = form.image.data if form.image.data and hasattr(form.image.data, "filename") and form.image.data.filename else None
+        image_files = _get_image_files(form)
 
         equipment_service = EquipmentService()
         try:
-            equipment = equipment_service.create_equipment(data, image_file=image_file, username=current_user.username)
+            equipment = equipment_service.create_equipment(data, image_files=image_files, username=current_user.username)
         except ValueError as e:
             errors = e.args[0] if isinstance(e.args[0], list) else [str(e)]
             return render_template("equipment_form.html", form=form, errors=errors)
@@ -403,13 +403,13 @@ def register_routes(app):
 
         data = _form_to_equipment_data(form)
         expected_updated_at = _parse_expected_updated_at(form.expected_updated_at.data)
-        image_file = form.image.data if form.image.data and hasattr(form.image.data, "filename") and form.image.data.filename else None
-        remove_image = form.remove_image.data
+        image_files = _get_image_files(form)
+        remove_image_ids = _parse_remove_image_ids(form.remove_image_ids.data)
 
         equipment_service = EquipmentService()
         try:
             equipment = equipment_service.update_equipment(
-                equipment_id, data, image_file=image_file, remove_image=remove_image,
+                equipment_id, data, image_files=image_files, remove_image_ids=remove_image_ids,
                 expected_updated_at=expected_updated_at, username=current_user.username,
             )
         except ConflictError as e:
@@ -779,3 +779,25 @@ def _parse_expected_updated_at(value) -> datetime | None:
         return datetime.fromisoformat(value)
     except (ValueError, TypeError):
         return None
+
+
+def _get_image_files(form) -> list:
+    """Extract valid uploaded image files from the multi-file field."""
+    files = []
+    if form.image.data:
+        for f in form.image.data:
+            if f and hasattr(f, "filename") and f.filename:
+                files.append(f)
+    return files
+
+
+def _parse_remove_image_ids(value) -> list[int]:
+    """Parse comma-separated image IDs from the hidden field."""
+    if not value or not isinstance(value, str):
+        return []
+    ids = []
+    for part in value.split(","):
+        part = part.strip()
+        if part.isdigit():
+            ids.append(int(part))
+    return ids

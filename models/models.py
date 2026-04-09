@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 
 from flask_login import UserMixin
 
@@ -20,14 +21,32 @@ class Equipment(db.Model):
     assignee = db.Column(db.String(200), nullable=True)
     location = db.Column(db.String(300), nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    # Legacy column kept for migration; new images go to EquipmentImage table
     image_filename = db.Column(db.String(300), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+    images = db.relationship(
+        "EquipmentImage", backref="equipment", cascade="all, delete-orphan",
+        order_by="EquipmentImage.position"
+    )
     snapshots = db.relationship(
         "EquipmentSnapshot", backref="equipment", cascade="all, delete-orphan",
         order_by="EquipmentSnapshot.snapshot_date.desc()"
     )
+
+    MAX_IMAGES = 5
+
+
+class EquipmentImage(db.Model):
+    """Individual image file associated with a piece of equipment."""
+    id = db.Column(db.Integer, primary_key=True)
+    equipment_id = db.Column(
+        db.Integer, db.ForeignKey("equipment.id"), nullable=False
+    )
+    filename = db.Column(db.String(300), nullable=False)
+    position = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 class EquipmentSnapshot(db.Model):
@@ -56,7 +75,18 @@ class EquipmentSnapshot(db.Model):
     assignee = db.Column(db.String(200), nullable=True)
     location = db.Column(db.String(300), nullable=True)
     notes = db.Column(db.Text, nullable=True)
-    image_filename = db.Column(db.String(300), nullable=True)
+    # JSON-encoded list of image filenames at this point in time
+    image_filenames_json = db.Column(db.Text, nullable=True)
+
+    @property
+    def image_filenames(self):
+        if not self.image_filenames_json:
+            return []
+        return json.loads(self.image_filenames_json)
+
+    @image_filenames.setter
+    def image_filenames(self, value):
+        self.image_filenames_json = json.dumps(value) if value else None
 
 
 class SystemConfig(db.Model):

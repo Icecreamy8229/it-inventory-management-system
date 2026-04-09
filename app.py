@@ -74,6 +74,9 @@ def create_app(config_overrides=None):
         # Migrate legacy equipment_history into equipment_snapshot
         _migrate_history_to_snapshots(app)
 
+        # Migrate legacy single image_filename to EquipmentImage table
+        _migrate_single_images(app)
+
         # Seed from config.yaml on first startup
         from services.seed_service import seed_from_config
         seed_from_config()
@@ -104,11 +107,19 @@ def _migrate_add_columns(app):
 
         # Add has_full_data to equipment_snapshot if missing
         if "equipment_snapshot" in inspector.get_table_names():
-            snapshot_columns = [c["name"] for c in inspector.get_columns("equipment_snapshot")]
+            snapshot_columns = {c["name"]: c for c in inspector.get_columns("equipment_snapshot")}
+            needs_rebuild = False
+
             if "has_full_data" not in snapshot_columns:
-                conn.execute(sqlalchemy.text(
-                    "ALTER TABLE equipment_snapshot ADD COLUMN has_full_data BOOLEAN NOT NULL DEFAULT 1"
-                ))
+                needs_rebuild = True
+            if "image_filenames_json" not in snapshot_columns:
+                needs_rebuild = True
+            # Check if asset_tag is NOT NULL (needs to be nullable for legacy rows)
+            if "asset_tag" in snapshot_columns and snapshot_columns["asset_tag"].get("nullable") is False:
+                needs_rebuild = True
+
+            if needs_rebuild:
+                _rebuild_equipment_snapshot(conn)
                 conn.commit()
 
         # Migration: relax NOT NULL constraints on optional equipment fields.
@@ -174,6 +185,87 @@ def _migrate_equipment_nullable(conn, inspector):
 
 
 
+def _rebuild_equipment_snapshot(conn):
+    """Rebuild equipment_snapshot table so all attribute columns are nullable
+    and new columns (has_full_data, image_filenames_json) exist."""
+    import sqlalchemy
+
+    conn.execute(sqlalchemy.text("PRAGMA foreign_keys = OFF"))
+    conn.execute(sqlalchemy.text("""
+        CREATE TABLE equipment_snapshot_new (
+            id INTEGER PRIMARY KEY,
+            equipment_id INTEGER NOT NULL REFERENCES equipment(id),
+            snapshot_date DATETIME NOT NULL,
+            change_type VARCHAR(50) NOT NULL,
+            description TEXT NOT NULL,
+            changed_by VARCHAR(80),
+            has_full_data BOOLEAN NOT NULL DEFAULT 1,
+            asset_tag VARCHAR(100),
+            name VARCHAR(200),
+            category VARCHAR(50),
+            manufacturer VARCHAR(100),
+            model VARCHAR(100),
+            serial_number VARCHAR(100),
+            purchase_date DATE,
+            purchase_cost FLOAT,
+            warranty_expiration_date DATE,
+            status VARCHAR(20),
+            assignee VARCHAR(200),
+            location VARCHAR(300),
+            notes TEXT,
+            image_filenames_json TEXT
+        )
+    """))
+
+    # Detect which columns exist in the old table to copy
+    inspector_cols = conn.execute(sqlalchemy.text(
+        "PRAGMA table_info(equipment_snapshot)"
+    )).fetchall()
+    old_col_names = {row[1] for row in inspector_cols}
+
+    # Build the column list for copying
+    copy_cols = [
+        "id", "equipment_id", "snapshot_date", "change_type", "description", "changed_by",
+    ]
+    new_cols = list(copy_cols)
+
+    if "has_full_data" in old_col_names:
+        copy_cols.append("has_full_data")
+        new_cols.append("has_full_data")
+
+    attr_cols = [
+        "asset_tag", "name", "category", "manufacturer", "model",
+        "serial_number", "purchase_date", "purchase_cost",
+        "warranty_expiration_date", "status", "assignee", "location", "notes",
+    ]
+    for col in attr_cols:
+        if col in old_col_names:
+            copy_cols.append(col)
+            new_cols.append(col)
+
+    # Handle image migration: old single column -> new JSON column
+    if "image_filenames_json" in old_col_names:
+        copy_cols.append("image_filenames_json")
+        new_cols.append("image_filenames_json")
+    elif "image_filename" in old_col_names:
+        copy_cols.append(
+            "CASE WHEN image_filename IS NOT NULL AND image_filename != '' "
+            "THEN '[\"' || image_filename || '\"]' ELSE NULL END"
+        )
+        new_cols.append("image_filenames_json")
+
+    select_clause = ", ".join(copy_cols)
+    insert_clause = ", ".join(new_cols)
+
+    conn.execute(sqlalchemy.text(
+        f"INSERT INTO equipment_snapshot_new ({insert_clause}) SELECT {select_clause} FROM equipment_snapshot"
+    ))
+
+    conn.execute(sqlalchemy.text("DROP TABLE equipment_snapshot"))
+    conn.execute(sqlalchemy.text("ALTER TABLE equipment_snapshot_new RENAME TO equipment_snapshot"))
+    conn.execute(sqlalchemy.text("PRAGMA foreign_keys = ON"))
+
+
 def _migrate_history_to_snapshots(app):
     """Move legacy equipment_history rows into equipment_snapshot, then drop the old table."""
     import sqlalchemy
@@ -206,4 +298,44 @@ def _migrate_history_to_snapshots(app):
             )
 
         conn.execute(sqlalchemy.text("DROP TABLE equipment_history"))
+        conn.commit()
+
+
+def _migrate_single_images(app):
+    """Move legacy equipment.image_filename values into the equipment_image table."""
+    import sqlalchemy
+
+    with db.engine.connect() as conn:
+        inspector = sqlalchemy.inspect(db.engine)
+        if "equipment_image" not in inspector.get_table_names():
+            return
+
+        equipment_columns = [c["name"] for c in inspector.get_columns("equipment")]
+        if "image_filename" not in equipment_columns:
+            return
+
+        rows = conn.execute(sqlalchemy.text(
+            "SELECT id, image_filename FROM equipment "
+            "WHERE image_filename IS NOT NULL AND image_filename != ''"
+        )).fetchall()
+
+        if not rows:
+            return
+
+        for row in rows:
+            equip_id, filename = row[0], row[1]
+            # Only migrate if no images exist yet for this equipment
+            existing = conn.execute(sqlalchemy.text(
+                "SELECT COUNT(*) FROM equipment_image WHERE equipment_id = :eid"
+            ), {"eid": equip_id}).scalar()
+            if existing == 0:
+                conn.execute(sqlalchemy.text(
+                    "INSERT INTO equipment_image (equipment_id, filename, position) "
+                    "VALUES (:eid, :fn, 0)"
+                ), {"eid": equip_id, "fn": filename})
+
+        # Clear the legacy column
+        conn.execute(sqlalchemy.text(
+            "UPDATE equipment SET image_filename = NULL WHERE image_filename IS NOT NULL"
+        ))
         conn.commit()

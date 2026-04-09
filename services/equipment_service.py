@@ -6,7 +6,7 @@ from flask import current_app
 from werkzeug.utils import secure_filename
 
 from app import db
-from models import Equipment, EquipmentSnapshot
+from models import Equipment, EquipmentImage, EquipmentSnapshot
 from services.validation import validate_equipment_data
 from exceptions import ConflictError
 
@@ -21,8 +21,8 @@ class EquipmentService:
     @staticmethod
     def _create_snapshot(equipment, change_type, description, username=None):
         """Create a point-in-time snapshot of the equipment's current state,
-        referencing the same image file on disk."""
-        return EquipmentSnapshot(
+        capturing all current image filenames."""
+        snap = EquipmentSnapshot(
             equipment_id=equipment.id,
             change_type=change_type,
             description=description,
@@ -40,21 +40,24 @@ class EquipmentService:
             assignee=equipment.assignee,
             location=equipment.location,
             notes=equipment.notes,
-            image_filename=equipment.image_filename,
         )
+        snap.image_filenames = [img.filename for img in equipment.images]
+        return snap
 
-    def create_equipment(self, data: dict, image_file=None, username: str = None) -> Equipment:
+    def create_equipment(self, data: dict, image_files=None, username: str = None) -> Equipment:
         """Validate and create a new equipment record with user-provided asset tag."""
+        image_files = image_files or []
         errors = validate_equipment_data(data)
-        if image_file:
+        if len(image_files) > Equipment.MAX_IMAGES:
             errors = errors or []
-            errors.extend(self._validate_image(image_file))
+            errors.append(f"Maximum {Equipment.MAX_IMAGES} images allowed")
+        for img in image_files:
+            img_errors = self._validate_image(img)
+            if img_errors:
+                errors = errors or []
+                errors.extend(img_errors)
         if errors:
             raise ValueError(errors)
-
-        image_filename = None
-        if image_file and image_file.filename:
-            image_filename = self._save_image(image_file)
 
         equipment = Equipment(
             asset_tag=data["asset_tag"],
@@ -69,17 +72,25 @@ class EquipmentService:
             status="Available",
             location=data.get("location"),
             notes=data.get("notes"),
-            image_filename=image_filename,
         )
         db.session.add(equipment)
         db.session.flush()
+
+        for i, img_file in enumerate(image_files):
+            filename = self._save_image(img_file)
+            db.session.add(EquipmentImage(
+                equipment_id=equipment.id, filename=filename, position=i,
+            ))
 
         db.session.add(self._create_snapshot(equipment, "Created", "Equipment record created", username))
         db.session.commit()
         return equipment
 
-    def update_equipment(self, equipment_id: int, data: dict, image_file=None, remove_image: bool = False, expected_updated_at: datetime = None, username: str = None) -> Equipment:
-        """Validate and update an equipment record, recording history."""
+    def update_equipment(self, equipment_id: int, data: dict, image_files=None, remove_image_ids=None, expected_updated_at: datetime = None, username: str = None) -> Equipment:
+        """Validate and update an equipment record, recording a snapshot."""
+        image_files = image_files or []
+        remove_image_ids = remove_image_ids or []
+
         equipment = db.session.get(Equipment, equipment_id)
         if equipment is None:
             raise ValueError("Equipment not found")
@@ -88,9 +99,19 @@ class EquipmentService:
             raise ConflictError("This record was modified by another user. Please refresh and try again.")
 
         errors = validate_equipment_data(data, is_update=True, equipment_id=equipment_id)
-        if image_file:
+
+        # Check image count after removals + additions
+        current_count = len(equipment.images) - len(remove_image_ids)
+        new_total = current_count + len(image_files)
+        if new_total > Equipment.MAX_IMAGES:
             errors = errors or []
-            errors.extend(self._validate_image(image_file))
+            errors.append(f"Maximum {Equipment.MAX_IMAGES} images allowed (currently {len(equipment.images)}, removing {len(remove_image_ids)}, adding {len(image_files)})")
+
+        for img in image_files:
+            img_errors = self._validate_image(img)
+            if img_errors:
+                errors = errors or []
+                errors.extend(img_errors)
         if errors:
             raise ValueError(errors)
 
@@ -111,17 +132,29 @@ class EquipmentService:
             if field in data:
                 setattr(equipment, field, data[field])
 
-        # Handle image upload / removal
-        if remove_image and equipment.image_filename:
-            changed_fields.append("image")
-            equipment.image_filename = None
-        elif image_file and image_file.filename:
-            new_filename = self._save_image(image_file)
-            equipment.image_filename = new_filename
-            changed_fields.append("image")
+        # Handle image removals
+        if remove_image_ids:
+            for img in list(equipment.images):
+                if img.id in remove_image_ids:
+                    equipment.images.remove(img)
+                    db.session.delete(img)
+            changed_fields.append("images")
+
+        # Handle new image uploads
+        if image_files:
+            max_pos = max((img.position for img in equipment.images), default=-1)
+            for img_file in image_files:
+                max_pos += 1
+                filename = self._save_image(img_file)
+                db.session.add(EquipmentImage(
+                    equipment_id=equipment.id, filename=filename, position=max_pos,
+                ))
+            changed_fields.append("images")
 
         if changed_fields:
-            description = "Updated fields: " + ", ".join(changed_fields)
+            # Deduplicate "images" if both remove and add happened
+            unique_fields = list(dict.fromkeys(changed_fields))
+            description = "Updated fields: " + ", ".join(unique_fields)
             db.session.add(self._create_snapshot(equipment, "Updated", description, username))
 
         db.session.commit()
@@ -336,13 +369,16 @@ class EquipmentService:
         equipment = db.session.get(Equipment, equipment_id)
         if equipment is None:
             raise ValueError("Equipment not found")
-        # Collect all unique image filenames from equipment + snapshots
+        # Collect all unique image filenames from images table + snapshots
         image_files = set()
+        for img in equipment.images:
+            image_files.add(img.filename)
+        # Legacy single image
         if equipment.image_filename:
             image_files.add(equipment.image_filename)
         for snap in equipment.snapshots:
-            if snap.image_filename:
-                image_files.add(snap.image_filename)
+            for fn in snap.image_filenames:
+                image_files.add(fn)
         db.session.delete(equipment)
         db.session.commit()
         for filename in image_files:

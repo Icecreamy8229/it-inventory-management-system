@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileField, FileAllowed
+from flask_wtf.file import FileField, FileAllowed, MultipleFileField
 from wtforms import (
     BooleanField,
     DateField,
@@ -48,8 +48,8 @@ class EquipmentForm(FlaskForm):
     warranty_expiration_date = DateField("Warranty Expiration Date", validators=[Optional()], format="%Y-%m-%d")
     location = StringField("Location", validators=[Optional(), Length(max=300)])
     notes = TextAreaField("Notes", validators=[Optional()])
-    image = FileField("Equipment Image", validators=[Optional(), FileAllowed(ALLOWED_IMAGE_EXTENSIONS, "Images only (png, jpg, gif, webp).")])
-    remove_image = BooleanField("Remove current image")
+    image = MultipleFileField("Equipment Images", validators=[Optional()])
+    remove_image_ids = HiddenField("Remove Image IDs")
 
 
 class AssignForm(FlaskForm):

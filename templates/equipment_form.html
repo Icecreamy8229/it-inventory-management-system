@@ -81,15 +81,18 @@
                     {{ form.notes(class="form-control", id="notes", rows="3") }}
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label for="image" class="form-label">Equipment Image</label>
-                    {{ form.image(class="form-control", id="image", accept="image/png,image/jpeg,image/gif,image/webp") }}
-                    <div class="form-text">PNG, JPG, GIF, or WebP. Max 5 MB.</div>
-                    {% if equipment and equipment.image_filename %}
-                    <div class="mt-2 d-flex align-items-center gap-2">
-                        <img src="{{ url_for('uploaded_file', filename=equipment.image_filename) }}" alt="Current image for {{ equipment.name }}" class="rounded" style="max-height:80px;">
-                        <label class="form-check-label">
-                            {{ form.remove_image(class="form-check-input") }} Remove current image
-                        </label>
+                    <label for="image" class="form-label">Equipment Images (up to 5)</label>
+                    {{ form.image(class="form-control", id="image", accept="image/png,image/jpeg,image/gif,image/webp", multiple=true) }}
+                    <div class="form-text">PNG, JPG, GIF, or WebP. Max 5 MB each.</div>
+                    {% if equipment and equipment.images %}
+                    <div class="mt-2">
+                        <input type="hidden" name="remove_image_ids" id="remove_image_ids" value="">
+                        {% for img in equipment.images %}
+                        <div class="d-inline-block position-relative me-2 mb-2" id="img-wrap-{{ img.id }}">
+                            <img src="{{ url_for('uploaded_file', filename=img.filename) }}" alt="Image {{ loop.index }} for {{ equipment.name }}" class="rounded" style="max-height:80px;">
+                            <button type="button" class="btn btn-sm btn-danger position-absolute top-0 end-0" style="padding:0 .35rem; font-size:.7rem; line-height:1.4; border-radius:50%;" onclick="markImageRemoval({{ img.id }})" aria-label="Remove image {{ loop.index }}">×</button>
+                        </div>
+                        {% endfor %}
                     </div>
                     {% endif %}
                 </div>
@@ -134,5 +137,18 @@
 })();
 </script>
 {% endif %}
+
+<script>
+function markImageRemoval(imageId) {
+  var field = document.getElementById('remove_image_ids');
+  var ids = field.value ? field.value.split(',').filter(Boolean) : [];
+  if (ids.indexOf(String(imageId)) === -1) {
+    ids.push(String(imageId));
+  }
+  field.value = ids.join(',');
+  var wrap = document.getElementById('img-wrap-' + imageId);
+  if (wrap) wrap.style.display = 'none';
+}
+</script>
 
 {% endblock %}

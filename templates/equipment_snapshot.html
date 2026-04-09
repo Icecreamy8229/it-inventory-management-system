@@ -21,12 +21,14 @@
         <div class="card h-100">
             <div class="card-body">
                 <h2 class="h6 mb-3">Equipment State at This Point</h2>
-                {% if snapshot.image_filename %}
-                <div class="mb-3 text-center">
-                    <img src="{{ url_for('uploaded_file', filename=snapshot.image_filename) }}" alt="Photo of {{ snapshot.name }}" class="img-fluid rounded" style="max-height:300px;">
+                {% if snapshot.image_filenames %}
+                <div class="mb-3 d-flex flex-wrap gap-2 justify-content-center">
+                    {% for fn in snapshot.image_filenames %}
+                    <img src="{{ url_for('uploaded_file', filename=fn) }}" alt="Photo {{ loop.index }} of {{ snapshot.name }}" class="img-fluid rounded" style="max-height:300px;">
+                    {% endfor %}
                 </div>
                 {% else %}
-                <div class="mb-3 text-center text-muted small" style="padding:2rem 0; border:1px dashed var(--border-subtle); border-radius:8px;">No image at this point in time.</div>
+                <div class="mb-3 text-center text-muted small" style="padding:2rem 0; border:1px dashed var(--border-subtle); border-radius:8px;">No images at this point in time.</div>
                 {% endif %}
                 <dl class="row mb-0">
                     <dt class="col-sm-4 text-muted">Asset Tag</dt>
