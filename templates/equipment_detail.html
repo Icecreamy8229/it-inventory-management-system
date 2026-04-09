@@ -106,11 +106,26 @@
     {% endif %}
 </div>
 
-<!-- History -->
+<!-- History Snapshots -->
 <div class="card">
     <div class="card-body">
-        <h2 class="h6 mb-3">History</h2>
-        {% if equipment.history_entries %}
+        <h2 class="h6 mb-3">History Snapshots</h2>
+        {% if equipment.snapshots %}
+        <div class="list-group">
+            {% for snap in equipment.snapshots %}
+            <a href="{{ url_for('equipment_snapshot', equipment_id=equipment.id, snapshot_id=snap.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="fw-semibold">{{ snap.change_type }}</div>
+                    <small class="text-muted">{{ snap.description }}</small>
+                </div>
+                <div class="text-end">
+                    <div class="small">{{ snap.snapshot_date.strftime('%Y-%m-%d %H:%M') }}</div>
+                    <small class="text-muted">{{ snap.changed_by or '—' }}</small>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% elif equipment.history_entries %}
         <div class="table-responsive">
             <table class="table table-hover mb-0">
                 <thead class="table-light">

@@ -27,6 +27,10 @@ class Equipment(db.Model):
     history_entries = db.relationship(
         "EquipmentHistory", backref="equipment", cascade="all, delete-orphan"
     )
+    snapshots = db.relationship(
+        "EquipmentSnapshot", backref="equipment", cascade="all, delete-orphan",
+        order_by="EquipmentSnapshot.snapshot_date.desc()"
+    )
 
 
 class EquipmentHistory(db.Model):
@@ -40,6 +44,34 @@ class EquipmentHistory(db.Model):
     previous_value = db.Column(db.String(200), nullable=True)
     new_value = db.Column(db.String(200), nullable=True)
     changed_by = db.Column(db.String(80), nullable=True)
+
+
+class EquipmentSnapshot(db.Model):
+    """Point-in-time snapshot of all equipment attributes."""
+    id = db.Column(db.Integer, primary_key=True)
+    equipment_id = db.Column(
+        db.Integer, db.ForeignKey("equipment.id"), nullable=False
+    )
+    snapshot_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    change_type = db.Column(db.String(50), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    changed_by = db.Column(db.String(80), nullable=True)
+
+    # Full copy of equipment fields at this point in time
+    asset_tag = db.Column(db.String(100), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    category = db.Column(db.String(50), nullable=True)
+    manufacturer = db.Column(db.String(100), nullable=True)
+    model = db.Column(db.String(100), nullable=True)
+    serial_number = db.Column(db.String(100), nullable=True)
+    purchase_date = db.Column(db.Date, nullable=True)
+    purchase_cost = db.Column(db.Float, nullable=True)
+    warranty_expiration_date = db.Column(db.Date, nullable=True)
+    status = db.Column(db.String(20), nullable=True)
+    assignee = db.Column(db.String(200), nullable=True)
+    location = db.Column(db.String(300), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    image_filename = db.Column(db.String(300), nullable=True)
 
 
 class SystemConfig(db.Model):

@@ -6,7 +6,7 @@ from flask import current_app
 from werkzeug.utils import secure_filename
 
 from app import db
-from models import Equipment, EquipmentHistory
+from models import Equipment, EquipmentHistory, EquipmentSnapshot
 from services.validation import validate_equipment_data
 from exceptions import ConflictError
 
@@ -17,6 +17,30 @@ MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
 class EquipmentService:
 
     VALID_STATUSES = {"Available", "Assigned", "Under Repair", "Retired"}
+
+    @staticmethod
+    def _create_snapshot(equipment, change_type, description, username=None):
+        """Create a point-in-time snapshot of the equipment's current state."""
+        return EquipmentSnapshot(
+            equipment_id=equipment.id,
+            change_type=change_type,
+            description=description,
+            changed_by=username,
+            asset_tag=equipment.asset_tag,
+            name=equipment.name,
+            category=equipment.category,
+            manufacturer=equipment.manufacturer,
+            model=equipment.model,
+            serial_number=equipment.serial_number,
+            purchase_date=equipment.purchase_date,
+            purchase_cost=equipment.purchase_cost,
+            warranty_expiration_date=equipment.warranty_expiration_date,
+            status=equipment.status,
+            assignee=equipment.assignee,
+            location=equipment.location,
+            notes=equipment.notes,
+            image_filename=equipment.image_filename,
+        )
 
     def create_equipment(self, data: dict, image_file=None, username: str = None) -> Equipment:
         """Validate and create a new equipment record with user-provided asset tag."""
@@ -56,6 +80,7 @@ class EquipmentService:
             changed_by=username,
         )
         db.session.add(history)
+        db.session.add(self._create_snapshot(equipment, "Created", "Equipment record created", username))
         db.session.commit()
         return equipment
 
@@ -123,6 +148,7 @@ class EquipmentService:
                 changed_by=username,
             )
             db.session.add(history)
+            db.session.add(self._create_snapshot(equipment, "Updated", description, username))
 
         db.session.commit()
         return equipment
@@ -140,12 +166,14 @@ class EquipmentService:
         previous_assignee = equipment.assignee
         equipment.assignee = assignee
         equipment.status = "Assigned"
+        description = f"Assigned to {assignee}"
         history = EquipmentHistory(
             equipment_id=equipment.id, change_type="Assignment",
-            description=f"Assigned to {assignee}", previous_value=previous_assignee, new_value=assignee,
+            description=description, previous_value=previous_assignee, new_value=assignee,
             changed_by=username,
         )
         db.session.add(history)
+        db.session.add(self._create_snapshot(equipment, "Assignment", description, username))
         db.session.commit()
         return equipment
 
@@ -160,12 +188,14 @@ class EquipmentService:
         previous_assignee = equipment.assignee
         equipment.assignee = None
         equipment.status = "Available"
+        description = f"Unassigned from {previous_assignee}"
         history = EquipmentHistory(
             equipment_id=equipment.id, change_type="Unassignment",
-            description=f"Unassigned from {previous_assignee}", previous_value=previous_assignee, new_value=None,
+            description=description, previous_value=previous_assignee, new_value=None,
             changed_by=username,
         )
         db.session.add(history)
+        db.session.add(self._create_snapshot(equipment, "Unassignment", description, username))
         db.session.commit()
         return equipment
 
@@ -183,13 +213,15 @@ class EquipmentService:
         if new_status == "Retired":
             equipment.assignee = None
         equipment.status = new_status
+        description = f"Status changed from {previous_status} to {new_status}"
         history = EquipmentHistory(
             equipment_id=equipment.id, change_type="StatusChange",
-            description=f"Status changed from {previous_status} to {new_status}",
+            description=description,
             previous_value=previous_status, new_value=new_status,
             changed_by=username,
         )
         db.session.add(history)
+        db.session.add(self._create_snapshot(equipment, "StatusChange", description, username))
         db.session.commit()
         return equipment
 
@@ -336,6 +368,13 @@ class EquipmentService:
         if equipment is None:
             raise ValueError("Equipment not found")
         return equipment
+
+    def get_snapshot(self, snapshot_id: int) -> EquipmentSnapshot:
+        """Retrieve a single equipment snapshot."""
+        snapshot = db.session.get(EquipmentSnapshot, snapshot_id)
+        if snapshot is None:
+            raise ValueError("Snapshot not found")
+        return snapshot
 
     def delete_equipment(self, equipment_id: int) -> None:
         """Delete an equipment record."""

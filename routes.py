@@ -346,6 +346,27 @@ def register_routes(app):
             delete_form=delete_form,
         )
 
+    @app.route("/equipment/<int:equipment_id>/snapshot/<int:snapshot_id>")
+    @login_required
+    def equipment_snapshot(equipment_id, snapshot_id):
+        equipment_service = EquipmentService()
+        try:
+            item = equipment_service.get_equipment(equipment_id)
+            snapshot = equipment_service.get_snapshot(snapshot_id)
+        except ValueError:
+            flash("Snapshot not found.", "error")
+            return redirect(url_for("equipment_list"))
+
+        if snapshot.equipment_id != equipment_id:
+            flash("Snapshot not found.", "error")
+            return redirect(url_for("equipment_detail", equipment_id=equipment_id))
+
+        return render_template(
+            "equipment_snapshot.html",
+            equipment=item,
+            snapshot=snapshot,
+        )
+
     @app.route("/equipment/<int:equipment_id>/edit")
     @login_required
     @admin_required
