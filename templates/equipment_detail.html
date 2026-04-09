@@ -19,9 +19,11 @@
             <div class="card-body">
                 <h2 class="h6 mb-3">Equipment Information</h2>
                 {% if equipment.images %}
-                <div class="mb-3 d-flex flex-wrap gap-2 justify-content-center">
+                <div class="mb-3 d-flex flex-wrap gap-2">
                     {% for img in equipment.images %}
-                    <img src="{{ url_for('uploaded_file', filename=img.filename) }}" alt="Photo {{ loop.index }} of {{ equipment.name or equipment.asset_tag }}" class="img-fluid rounded" style="max-height:300px;">
+                    <a href="{{ url_for('uploaded_file', filename=img.filename) }}" class="equip-thumb" data-lightbox aria-label="View photo {{ loop.index }}">
+                        <img src="{{ url_for('uploaded_file', filename=img.filename) }}" alt="Photo {{ loop.index }} of {{ equipment.name or equipment.asset_tag }}">
+                    </a>
                     {% endfor %}
                 </div>
                 {% endif %}

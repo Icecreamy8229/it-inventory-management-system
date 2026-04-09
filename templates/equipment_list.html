@@ -74,8 +74,8 @@
             {% for item in equipment %}
             <tr>
                 <td>
-                    {% if item.image_filename %}
-                    <img src="{{ url_for('uploaded_file', filename=item.image_filename) }}" alt="{{ item.name or item.asset_tag }}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px;">
+                    {% if item.images %}
+                    <img src="{{ url_for('uploaded_file', filename=item.images[0].filename) }}" alt="{{ item.name or item.asset_tag }}" style="width: 48px; height: 48px; object-fit: cover; border-radius: 4px;">
                     {% else %}
                     <span class="text-muted" style="display: inline-block; width: 48px; height: 48px; line-height: 48px; text-align: center; background: var(--bg-surface-hover); border-radius: 4px;">—</span>
                     {% endif %}
